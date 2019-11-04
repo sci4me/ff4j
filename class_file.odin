@@ -629,8 +629,6 @@ parse_line_number_table_entry :: proc(r: ^DataReader) -> (LineNumberTable_Entry,
 parse_line_number_table_attribute_info :: proc(r: ^DataReader) -> (LineNumberTable_Attribute_Info, Parse_Error) {
 	count: u16;
 
-	fmt.println(r.index);
-
 	if _count, ok := read_u16(r); ok do count = _count;
 	else do return {}, .EOF;
 
@@ -670,28 +668,26 @@ parse_attribute :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> (
 	if _attribute_length, ok := read_u32(r); ok do attribute_length = _attribute_length;
 	else do return {}, .EOF;
 
-	fmt.println("Parsing attribute:", attribute_name);
-
 	switch attribute_name {
-		case "ConstantValue":
+		case "ConstantValue":							unimplemented();
 		case "Code":									return parse_code_attribute_info(r, constant_pool);
-		case "StackMapTable":
-		case "Exceptions":
-		case "InnerClasses":
-		case "EnclosingMethod":
-		case "Synthetic":
-		case "Signature":
+		case "StackMapTable":							unimplemented();
+		case "Exceptions":								unimplemented();
+		case "InnerClasses":							unimplemented();
+		case "EnclosingMethod":							unimplemented();
+		case "Synthetic":								unimplemented();
+		case "Signature":								unimplemented();
 		case "SourceFile":								return parse_source_file_attribute_info(r);
-		case "SourceDebugExtension":
+		case "SourceDebugExtension":					unimplemented();
 		case "LineNumberTable":							return parse_line_number_table_attribute_info(r);
-		case "LocalVariableTable":	
-		case "Deprecated":
-		case "RuntimeVisibleAnnotations":
-		case "RuntimeInvisibleAnnotations":
-		case "RuntimeVisibleParameterAnnotations":
-		case "RuntimeInvisibleParameterAnnotations":
-		case "AnnotationDefault":
-		case "BootstrapMethods":
+		case "LocalVariableTable":						unimplemented();
+		case "Deprecated":								unimplemented();
+		case "RuntimeVisibleAnnotations":				unimplemented();
+		case "RuntimeInvisibleAnnotations":				unimplemented();
+		case "RuntimeVisibleParameterAnnotations":		unimplemented();
+		case "RuntimeInvisibleParameterAnnotations":	unimplemented();
+		case "AnnotationDefault":						unimplemented();
+		case "BootstrapMethods":						unimplemented();
 	}
 
 	if bytes, ok := read_n_dynamic(r, int(attribute_length)); ok do return Unknown_Attribute_Info{bytes}, .NO_ERROR;
