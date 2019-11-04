@@ -1,5 +1,10 @@
 package fjvm
 
+// TODO: remove fmt import
+import "core:fmt"
+
+MAGIC 						:: 0xCAFEBABE;
+
 ACC_PUBLIC					:: 0x0001;
 ACC_PRIVATE					:: 0x0002;
 ACC_PROTECTED				:: 0x0004;
@@ -309,4 +314,54 @@ Class_File :: struct {
 	fields: []Field_Info,
 	methods: []Method_Info,
 	attributes: []Attribute_Info
+}
+
+@private
+parse_constant_pool :: proc(r: ^DataReader) -> ([]ConstantPool_Info, Parse_Error) {
+	count: u16;
+
+	if _count, ok := read_u16(r); ok do count = _count;
+	else do return nil, .EOF;
+
+
+
+	return nil, .OTHER;
+}
+
+Parse_Error :: enum {
+	NO_ERROR,
+	EOF,
+	BAD_MAGIC,
+	OTHER
+}
+
+parse_class_file :: proc(data: []u8) -> (^Class_File, Parse_Error) {
+	dr := DataReader{data, 0};
+	r := &dr;
+
+	minor, major: u16;
+	constant_pool: []ConstantPool_Info;
+	access, this_class, super_class: u16;
+	interfaces: []u16;
+	fields: []Field_Info;
+	methods: []Method_Info;
+	attributes: []Attribute_Info;
+
+	if magic, ok := read_u32(r); ok do if magic != MAGIC do return nil, .BAD_MAGIC;
+	else do return nil, .EOF;
+
+	if _minor, ok := read_u16(r); ok do minor = _minor;
+	else do return nil, .EOF;
+
+	if _major, ok := read_u16(r); ok do major = _major;
+	else do return nil, .EOF;
+
+	// TODO: check versions?
+
+	if _constant_pool, err := parse_constant_pool(r); err == .NO_ERROR do constant_pool = _constant_pool;
+	else do return nil, .EOF;
+
+	// TODO
+
+	return nil, .OTHER;
 }
