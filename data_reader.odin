@@ -36,3 +36,19 @@ read_u32 :: inline proc(using r: ^DataReader) -> (u32, bool) {
 	index += 4;
 	return v, true;
 }
+
+read_n_static :: inline proc(using r: ^DataReader, $N: int) -> ([N]u8, bool) {
+	if !more(r, N) do return {}, false;
+	r : [N]u8;
+	for i in 0..<N do r[i] = data[index + i]; // TODO: @Optimize
+	index += N;
+	return r, true;
+}
+
+read_n_dynamic :: inline proc(using r: ^DataReader, n: int) -> ([]u8, bool) {
+	if !more(r, n) do return {}, false;
+	r := make([]u8, n);
+	for i in 0..<n do r[i] = data[index + i]; // TODO: @Optimize
+	index += n;
+	return r, true;
+}
