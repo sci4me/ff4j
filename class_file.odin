@@ -282,6 +282,10 @@ BootstrapMethods_Attribute_Info :: struct {
 	bootstrap_methods: []BootstrapMethod
 }
 
+Unknown_Attribute_Info :: struct {
+	bytes: []u8
+}
+
 Attribute_Info :: union {
 	ConstantValue_Attribute_Info,
 	Code_Attribute_Info,
@@ -302,7 +306,8 @@ Attribute_Info :: union {
 	RuntimeVisibleParameterAnnotations_Attribute_Info,
 	RuntimeInvisibleParameterAnnotations_Attribute_Info,
 	AnnotationDefault_Attribute_Info,
-	BootstrapMethods_Attribute_Info
+	BootstrapMethods_Attribute_Info,
+	Unknown_Attribute_Info
 }
 
 Class_File :: struct {
@@ -499,9 +504,17 @@ parse_constant_pool :: proc(r: ^DataReader) -> ([]ConstantPool_Info, Parse_Error
 	else do return nil, .EOF;
 
 	result := make([]ConstantPool_Info, count);
-	for i in 0..<count-1 {
-		if info, err := parse_constant_pool_info(r); err == .NO_ERROR do result[i] = info;
-		else do return nil, err;
+	i := u16(1);
+	for i < count {
+		if info, err := parse_constant_pool_info(r); err == .NO_ERROR {
+			result[i] = info;
+			i += 1;
+
+			// https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.4.5
+			_, is_long := info.(Constant_Long_Info);
+			_, is_double := info.(Constant_Double_Info);
+			if is_long || is_double do i += 1;
+		} else do return nil, err;
 	}
 
 	return result, .NO_ERROR;
@@ -533,6 +546,112 @@ parse_interfaces :: proc(r: ^DataReader) -> ([]u16, Parse_Error) {
 	return result, .NO_ERROR;
 }
 
+// ConstantValue
+
+@private
+parse_code_attribute_info :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> (Code_Attribute_Info, Parse_Error) {
+	parse_exception_table :: proc(r: ^DataReader) -> ([]Exception_Table_Entry, Parse_Error) {
+		parse_entry :: proc(r: ^DataReader) -> (Exception_Table_Entry, Parse_Error) {
+			unimplemented();
+			return {}, .OTHER;
+		}
+
+		count: u16;
+
+		if _count, ok := read_u16(r); ok do count = _count;
+		else do return {}, .EOF;
+
+		result := make([]Exception_Table_Entry, count);
+		for i in 0..<count {
+			if entry, err := parse_entry(r); err == .NO_ERROR do result[i] = entry;
+			else do return {}, err;
+		}
+
+		return result, .NO_ERROR;
+	}
+
+	max_stack, max_locals: u16;
+	code_length: u32;
+	code: []u8;
+	exception_table: []Exception_Table_Entry;
+	attributes: []Attribute_Info;
+
+	if _max_stack, ok := read_u16(r); ok do max_stack = _max_stack;
+	else do return {}, .EOF;
+
+	if _max_locals, ok := read_u16(r); ok do max_locals = _max_locals;
+	else do return {}, .EOF;
+
+	if _code_length, ok := read_u32(r); ok do code_length = _code_length;
+	else do return {}, .EOF;
+
+	if _code, ok := read_n_dynamic(r, int(code_length)); ok do code = _code;
+	else do return {}, .EOF;
+
+	if _exception_table, err := parse_exception_table(r); err == .NO_ERROR do exception_table = _exception_table;
+	else do return {}, err;
+
+	if _attributes, err := parse_attributes(r, constant_pool); err == .NO_ERROR do attributes = _attributes;
+	else do return {}, err;
+
+	return Code_Attribute_Info{max_stack, max_locals, code, exception_table, attributes}, .NO_ERROR;
+}
+
+// StackMapTable
+// Exceptions
+// InnerClasses
+// EnclosingMethod
+// Synthetic
+// Signature
+
+@private
+parse_source_file_attribute_info :: proc(r: ^DataReader) -> (SourceFile_Attribute_Info, Parse_Error) {
+	if sourcefile_index, ok := read_u16(r); ok do return SourceFile_Attribute_Info{sourcefile_index}, .NO_ERROR;
+	else do return {}, .EOF;
+}
+
+// SourceDebugExtension
+
+@private
+parse_line_number_table_entry :: proc(r: ^DataReader) -> (LineNumberTable_Entry, Parse_Error) {
+	start_pc, line_number: u16;
+
+	if _start_pc, ok := read_u16(r); ok do start_pc = _start_pc;
+	else do return {}, .EOF;
+
+	if _line_number, ok := read_u16(r); ok do line_number = _line_number;
+	else do return {}, .EOF;
+
+	return LineNumberTable_Entry{start_pc, line_number}, .NO_ERROR;
+}
+
+@private
+parse_line_number_table_attribute_info :: proc(r: ^DataReader) -> (LineNumberTable_Attribute_Info, Parse_Error) {
+	count: u16;
+
+	fmt.println(r.index);
+
+	if _count, ok := read_u16(r); ok do count = _count;
+	else do return {}, .EOF;
+
+	entries := make([]LineNumberTable_Entry, count);
+	for i in 0..<count {
+		if entry, err := parse_line_number_table_entry(r); err == .NO_ERROR do entries[i] = entry;
+		else do return {}, err;
+	}
+
+	return LineNumberTable_Attribute_Info{entries}, .NO_ERROR;
+}
+
+// LocalVariableTable
+// Deprecated
+// RuntimeVisibleAnnotations
+// RuntimeInvisibleAnnotations
+// RuntimeVisibleParameterAnnotations
+// RuntimeInvisibleParameterAnnotations
+// AnnotationDefault
+// BootstrapMethods
+
 @private
 parse_attribute :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> (Attribute_Info, Parse_Error) {
 	attribute_name_index: u16;
@@ -542,7 +661,7 @@ parse_attribute :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> (
 	if _attribute_name_index, ok := read_u16(r); ok do attribute_name_index = _attribute_name_index;
 	else do return {}, .EOF;
 
-	if int(attribute_name_index) >= len(constant_pool) do return {}, .BAD_ATTRIBUTE_NAME_INDEX;	
+	if attribute_name_index == 0 || int(attribute_name_index) >= len(constant_pool) do return {}, .BAD_ATTRIBUTE_NAME_INDEX;	
 
 	name_entry := constant_pool[attribute_name_index];
 	if name_utf8, ok := name_entry.(Constant_Utf8_Info); ok do attribute_name = string(name_utf8.bytes);
@@ -555,17 +674,17 @@ parse_attribute :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> (
 
 	switch attribute_name {
 		case "ConstantValue":
-		case "Code":
+		case "Code":									return parse_code_attribute_info(r, constant_pool);
 		case "StackMapTable":
 		case "Exceptions":
 		case "InnerClasses":
 		case "EnclosingMethod":
 		case "Synthetic":
 		case "Signature":
-		case "SourceFile":
+		case "SourceFile":								return parse_source_file_attribute_info(r);
 		case "SourceDebugExtension":
-		case "LineNumberTable":
-		case "LocalVariableTable":
+		case "LineNumberTable":							return parse_line_number_table_attribute_info(r);
+		case "LocalVariableTable":	
 		case "Deprecated":
 		case "RuntimeVisibleAnnotations":
 		case "RuntimeInvisibleAnnotations":
@@ -575,7 +694,8 @@ parse_attribute :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> (
 		case "BootstrapMethods":
 	}
 
-	return {}, .OTHER;
+	if bytes, ok := read_n_dynamic(r, int(attribute_length)); ok do return Unknown_Attribute_Info{bytes}, .NO_ERROR;
+	else do return nil, .EOF;
 }
 
 @private
@@ -659,12 +779,30 @@ parse_methods :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> ([]
 
 	result := make([]Method_Info, count);
 	for i in 0..<count {
-		if field_info, err := parse_method(r, constant_pool); err == .NO_ERROR do result[i] = field_info;
+		if method_info, err := parse_method(r, constant_pool); err == .NO_ERROR do result[i] = method_info;
 		else do return nil, err;
 	}
 
 	return result, .NO_ERROR;
 }
+
+/*
+@private
+parse_many :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info, parse_fn: proc(^DataReader, []ConstantPool_Info) -> ($T, Parse_Error)) -> ([]T, Parse_Error) {
+	count: u16;
+
+	if _count, ok := read_u16(r); ok do count = _count;
+	else do return nil, .EOF;
+
+	result := make([]T, count);
+	for i in 0..<count {
+		if x, err := parse_fn(r, constant_pool); err == .NO_ERROR do result[i] = x;
+		else do return nil, err;
+	}
+
+	return result, .NO_ERROR;
+}
+*/
 
 parse_class_file :: proc(data: []u8) -> (Class_File, Parse_Error) {
 	dr := DataReader{data, 0};
