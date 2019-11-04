@@ -446,6 +446,25 @@ parse_constant_methodhandle_info :: proc(r: ^DataReader) -> (Constant_MethodHand
 }
 
 @private
+parse_constant_methodtype_info :: proc(r: ^DataReader) -> (Constant_MethodType_Info, Parse_Error) {
+	if descriptor_index, ok := read_u16(r); ok do return Constant_MethodType_Info{descriptor_index}, .NO_ERROR;
+	else do return {}, .EOF;
+}
+
+@private
+parse_constant_invokedynamic_info :: proc(r: ^DataReader) -> (Constant_InvokeDynamic_Info, Parse_Error) {
+	bootstrap_method_attr_index, name_and_type_index: u16;
+
+	if _bootstrap_method_attr_index, ok := read_u16(r); ok do bootstrap_method_attr_index = _bootstrap_method_attr_index;
+	else do return {}, .EOF;
+
+	if _name_and_type_index, ok := read_u16(r); ok do name_and_type_index = _name_and_type_index;
+	else do return {}, .EOF;
+
+	return Constant_InvokeDynamic_Info{bootstrap_method_attr_index, name_and_type_index}, .NO_ERROR;
+}
+
+@private
 parse_constant_pool_info :: proc(r: ^DataReader) -> (ConstantPool_Info, Parse_Error) {
 	tag : u8;
 
@@ -465,8 +484,8 @@ parse_constant_pool_info :: proc(r: ^DataReader) -> (ConstantPool_Info, Parse_Er
 		case CONSTANT_NameAndType:			return parse_constant_nameandtype_info(r);
 		case CONSTANT_Utf8:					return parse_constant_utf8_info(r);
 		case CONSTANT_MethodHandle:			return parse_constant_methodhandle_info(r);
-		case CONSTANT_MethodType:
-		case CONSTANT_InvokeDynamic:
+		case CONSTANT_MethodType:			return parse_constant_methodtype_info(r);
+		case CONSTANT_InvokeDynamic:		return parse_constant_invokedynamic_info(r);
 	}
 
 	return nil, .BAD_CONSTANT_INFO_TAG;
@@ -480,7 +499,7 @@ parse_constant_pool :: proc(r: ^DataReader) -> ([]ConstantPool_Info, Parse_Error
 	else do return nil, .EOF;
 
 	result := make([]ConstantPool_Info, count);
-	for i in 0..<count {
+	for i in 0..<count-1 {
 		if info, err := parse_constant_pool_info(r); err == .NO_ERROR do result[i] = info;
 		else do return nil, err;
 	}
@@ -493,10 +512,161 @@ Parse_Error :: enum {
 	EOF,
 	BAD_MAGIC,
 	BAD_CONSTANT_INFO_TAG,
+	BAD_ATTRIBUTE_NAME_INDEX,
+	ATTRIBUTE_NAME_IS_NOT_UTF8_CONSTANT,
 	OTHER
 }
 
-parse_class_file :: proc(data: []u8) -> (^Class_File, Parse_Error) {
+@private
+parse_interfaces :: proc(r: ^DataReader) -> ([]u16, Parse_Error) {
+	count: u16;
+
+	if _count, ok := read_u16(r); ok do count = _count;
+	else do return nil, .EOF;
+
+	result := make([]u16, count);
+	for i in 0..<count {
+		if x, ok := read_u16(r); ok do result[i] = x;
+		else do return nil, .EOF;
+	}
+
+	return result, .NO_ERROR;
+}
+
+@private
+parse_attribute :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> (Attribute_Info, Parse_Error) {
+	attribute_name_index: u16;
+	attribute_name: string;
+	attribute_length: u32;
+
+	if _attribute_name_index, ok := read_u16(r); ok do attribute_name_index = _attribute_name_index;
+	else do return {}, .EOF;
+
+	if int(attribute_name_index) >= len(constant_pool) do return {}, .BAD_ATTRIBUTE_NAME_INDEX;	
+
+	name_entry := constant_pool[attribute_name_index];
+	if name_utf8, ok := name_entry.(Constant_Utf8_Info); ok do attribute_name = string(name_utf8.bytes);
+	else do return {}, .ATTRIBUTE_NAME_IS_NOT_UTF8_CONSTANT;
+
+	if _attribute_length, ok := read_u32(r); ok do attribute_length = _attribute_length;
+	else do return {}, .EOF;
+
+	fmt.println("Parsing attribute:", attribute_name);
+
+	switch attribute_name {
+		case "ConstantValue":
+		case "Code":
+		case "StackMapTable":
+		case "Exceptions":
+		case "InnerClasses":
+		case "EnclosingMethod":
+		case "Synthetic":
+		case "Signature":
+		case "SourceFile":
+		case "SourceDebugExtension":
+		case "LineNumberTable":
+		case "LocalVariableTable":
+		case "Deprecated":
+		case "RuntimeVisibleAnnotations":
+		case "RuntimeInvisibleAnnotations":
+		case "RuntimeVisibleParameterAnnotations":
+		case "RuntimeInvisibleParameterAnnotations":
+		case "AnnotationDefault":
+		case "BootstrapMethods":
+	}
+
+	return {}, .OTHER;
+}
+
+@private
+parse_attributes :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> ([]Attribute_Info, Parse_Error) {
+	count: u16;
+
+	if _count, ok := read_u16(r); ok do count = _count;
+	else do return nil, .EOF;
+
+	result := make([]Attribute_Info, count);
+	for i in 0..<count {
+		if attribute, err := parse_attribute(r, constant_pool); err == .NO_ERROR do result[i] = attribute;
+		else do return nil, err;
+	}
+
+	return result, .NO_ERROR;
+}
+
+@private
+parse_field :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> (Field_Info, Parse_Error) {
+	access, name_index, descriptor_index: u16;
+	attributes: []Attribute_Info;
+
+	if _access, ok := read_u16(r); ok do access = _access;
+	else do return {}, .EOF;
+
+	if _name_index, ok := read_u16(r); ok do name_index = _name_index;
+	else do return {}, .EOF;
+
+	if _descriptor_index, ok := read_u16(r); ok do descriptor_index = _descriptor_index;
+	else do return {}, .EOF;
+
+	if _attributes, err := parse_attributes(r, constant_pool); err == .NO_ERROR do attributes = _attributes;
+	else do return {}, err;
+
+	return Field_Info{access, name_index, descriptor_index, attributes}, .NO_ERROR;
+}
+
+@private
+parse_method :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> (Method_Info, Parse_Error) {
+	access, name_index, descriptor_index: u16;
+	attributes: []Attribute_Info;
+
+	if _access, ok := read_u16(r); ok do access = _access;
+	else do return {}, .EOF;
+
+	if _name_index, ok := read_u16(r); ok do name_index = _name_index;
+	else do return {}, .EOF;
+
+	if _descriptor_index, ok := read_u16(r); ok do descriptor_index = _descriptor_index;
+	else do return {}, .EOF;
+
+	if _attributes, err := parse_attributes(r, constant_pool); err == .NO_ERROR do attributes = _attributes;
+	else do return {}, err;
+
+	return Method_Info{access, name_index, descriptor_index, attributes}, .NO_ERROR;	
+}
+
+@private
+parse_fields :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> ([]Field_Info, Parse_Error) {
+	count: u16;
+
+	if _count, ok := read_u16(r); ok do count = _count;
+	else do return nil, .EOF;
+
+	result := make([]Field_Info, count);
+	for i in 0..<count {
+		if field_info, err := parse_field(r, constant_pool); err == .NO_ERROR do result[i] = field_info;
+		else do return nil, err;
+	}
+
+	return result, .NO_ERROR;
+}
+
+@private
+parse_methods :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> ([]Method_Info, Parse_Error) {
+	count: u16;
+
+	if _count, ok := read_u16(r); ok do count = _count;
+	else do return nil, .EOF;
+
+	result := make([]Method_Info, count);
+	for i in 0..<count {
+		if field_info, err := parse_method(r, constant_pool); err == .NO_ERROR do result[i] = field_info;
+		else do return nil, err;
+	}
+
+	return result, .NO_ERROR;
+}
+
+parse_class_file :: proc(data: []u8) -> (Class_File, Parse_Error) {
 	dr := DataReader{data, 0};
 	r := &dr;
 
@@ -508,21 +678,52 @@ parse_class_file :: proc(data: []u8) -> (^Class_File, Parse_Error) {
 	methods: []Method_Info;
 	attributes: []Attribute_Info;
 
-	if magic, ok := read_u32(r); ok do if magic != MAGIC do return nil, .BAD_MAGIC;
-	else do return nil, .EOF;
+	if magic, ok := read_u32(r); ok {
+		if magic != MAGIC do return {}, .BAD_MAGIC;
+	} else do return {}, .EOF;
 
 	if _minor, ok := read_u16(r); ok do minor = _minor;
-	else do return nil, .EOF;
+	else do return {}, .EOF;
 
 	if _major, ok := read_u16(r); ok do major = _major;
-	else do return nil, .EOF;
+	else do return {}, .EOF;
 
 	// TODO: check versions?
 
 	if _constant_pool, err := parse_constant_pool(r); err == .NO_ERROR do constant_pool = _constant_pool;
-	else do return nil, .EOF;
+	else do return {}, err;
 
-	// TODO
+	if _access, ok := read_u16(r); ok do access = _access;
+	else do return {}, .EOF;
 
-	return nil, .OTHER;
+	if _this_class, ok := read_u16(r); ok do this_class = _this_class;
+	else do return {}, .EOF;
+
+	if _super_class, ok := read_u16(r); ok do super_class = _super_class;
+	else do return {}, .EOF;
+
+	if _interfaces, err := parse_interfaces(r); err == .NO_ERROR do interfaces = _interfaces;
+	else do return {}, err;
+
+	if _fields, err := parse_fields(r, constant_pool); err == .NO_ERROR do fields = _fields;
+	else do return {}, err;
+
+	if _methods, err := parse_methods(r, constant_pool); err == .NO_ERROR do methods = _methods;
+	else do return {}, err;
+
+	if _attributes, err := parse_attributes(r, constant_pool); err == .NO_ERROR do attributes = _attributes;
+	else do return {}, err;
+
+	return Class_File{
+		minor,
+		major,
+		constant_pool,
+		access,
+		this_class,
+		super_class,
+		interfaces,
+		fields,
+		methods,
+		attributes
+	}, .NO_ERROR;
 }
