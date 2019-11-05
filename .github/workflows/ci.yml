@@ -15,5 +15,7 @@ jobs:
         pushd Odin
         make release
         popd
-    - name: Build
-      run: ./Odin/odin build .
+    - name: Build JVM
+      run: make
+    - name: Build JDK
+      run: ./build_jdk
