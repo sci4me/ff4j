@@ -1,5 +1,7 @@
 BINARY=ff4j
 SRC_DIR=src
+ODIN_BINARY=$(shell which odin)
+ODIN_DIR=$(shell dirname $(ODIN_BINARY))
 
 all: $(BINARY)
 
@@ -7,4 +9,4 @@ clean:
 	rm -f $(BINARY)
 
 $(BINARY): clean
-	odin build $(SRC_DIR) -out=$(BINARY)
+	$(ODIN_DIR)/odin build $(SRC_DIR) -out=$(BINARY)

@@ -14,9 +14,8 @@ jobs:
         git clone https://github.com/odin-lang/Odin.git
         pushd Odin
         make release
-        export PATH=$PATH:$(pwd)
         popd
     - name: Build JVM
-      run: make
+      run: make ODIN_DIR=Odin
     - name: Build JDK
       run: ./build_jdk
