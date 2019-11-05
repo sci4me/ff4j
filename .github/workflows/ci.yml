@@ -11,7 +11,7 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install Odin
       run: |
-        git clone git@github.com:odin-lang/Odin.git
+        git clone https://github.com/odin-lang/Odin.git
         pushd Odin
         make release
         popd
