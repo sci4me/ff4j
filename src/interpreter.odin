@@ -17,14 +17,16 @@ Stack_Frame :: struct {
 	prev: ^Stack_Frame,
 	method: ^Method,
 	locals: []Value,
-	stack: []Value
+	stack: []Value,
+	return_pc: int
 }
 
 Interpreter :: struct {
 	stack_data: []u8
 	stack: mem.Stack,
 	stack_allocator: mem.Allocator,
-	current_frame: ^Stack_Frame
+	current_frame: ^Stack_Frame,
+	pc: int
 }
 
 init_interpreter :: proc(using i: ^Interpreter, stack_size := DEFAULT_STACK_SIZE) {
@@ -38,7 +40,7 @@ delete_interpreter :: proc(using i: ^Interpreter) {
 }
 
 @private
-push_stack_frame :: proc(using i: ^Interpreter, method: ^Method) {
+push_stack_frame :: proc(using i: ^Interpreter, method: ^Method, return_pc := 0) {
 	max_locals := int(method.code.max_locals);
 	max_stack := int(method.code.max_stack);
 
@@ -51,6 +53,7 @@ push_stack_frame :: proc(using i: ^Interpreter, method: ^Method) {
 	frame.method = method;
 	frame.locals = transmute([]Value) runtime.Raw_Slice{rawptr(frame_ptr + offset_of(Stack_Frame, locals)), max_locals};
 	frame.stack = transmute([]Value) runtime.Raw_Slice{rawptr(frame_ptr + offset_of(Stack_Frame, stack)), max_stack};
+	frame.return_pc = return_pc;
 
 	current_frame = frame;
 }

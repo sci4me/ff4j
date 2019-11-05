@@ -39,7 +39,7 @@ jobs:
       - name: Install Odin
         shell: cmd
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           git clone https://github.com/odin-lang/Odin.git
           cd Odin
           ./build.bat
@@ -53,7 +53,7 @@ jobs:
           cd ../..
       - name: Build JVM
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           make ODIN_DIR=Odin
       - name: Build JDK
         run: |
