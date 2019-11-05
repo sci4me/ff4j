@@ -39,7 +39,6 @@ delete_interpreter :: proc(using i: ^Interpreter) {
 	delete(stack_data);
 }
 
-@private
 push_stack_frame :: proc(using i: ^Interpreter, method: ^Method, return_pc := 0) {
 	max_locals := int(method.code.max_locals);
 	max_stack := int(method.code.max_stack);
@@ -58,10 +57,13 @@ push_stack_frame :: proc(using i: ^Interpreter, method: ^Method, return_pc := 0)
 	current_frame = frame;
 }
 
-@private
 pop_stack_frame :: proc(using i: ^Interpreter) {
 	frame := current_frame;
 	current_frame = frame.prev;
 
 	mem.free(frame, stack_allocator);
+}
+
+execute_single_instruction :: proc(using i: ^Interpreter) {
+
 }

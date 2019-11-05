@@ -18,7 +18,7 @@ delete_vm :: proc(using vm: ^VM) {
 	free(vm);
 }
 
-run_main_class :: proc(using vm: ^VM, name: string) {
+run_main_class :: proc(using vm: ^VM, name: string, args: []string) {
 	class, err := get_class_by_name(class_loader, name);
 	if err != .NO_ERROR do fail("Error: Could not find or load main class %s", name);
 
@@ -35,7 +35,13 @@ run_main_class :: proc(using vm: ^VM, name: string) {
 
 @private
 run :: proc(using vm: ^VM) {
-	for len(threads) > 0 {
+	// TODO: priority scheduling, etc.
 
+	for len(threads) > 0 {
+		for thread in threads {
+			if thread.state == .RUNNABLE do run_thread_for_ms(thread, 10);
+		}
+
+		// TODO: remove TERMINATED threads
 	}
 }

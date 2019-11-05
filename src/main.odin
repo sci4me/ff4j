@@ -4,10 +4,10 @@ import "core:fmt"
 import "core:os"
 
 main :: proc() {
-    if len(os.args) != 2 do fail("Usage: ff4j <file>");
+    if len(os.args) < 2 do fail("Usage: ff4j <file> [args]");
 
     vm := make_vm();
     defer delete_vm(vm);
 
-    run_main_class(vm, os.args[1]);
+    run_main_class(vm, os.args[1], os.args[2:]);
 }
