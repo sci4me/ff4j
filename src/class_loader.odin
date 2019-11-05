@@ -13,14 +13,47 @@ Load_Error :: enum {
 Class_Loader :: struct {
 	class_by_name: map[string]^Class,
 	object_class: ^Class,
-	class_class: ^Class
+	object_class_instance: ^Object,
+	class_class: ^Class,
+	class_class_instance: ^Object
 }
 
 @private
-load_methods :: proc(using c: ^Class, methods: []Method_Info) {
-	fmt.println("loading methods:");
-	fmt.println(methods);
-	fmt.println();
+load_methods :: proc(using c: ^Class, methods: []Method_Info) -> Load_Error {
+	for method_info in methods {
+		name, descriptor: string;
+		
+		if name_entry, ok := constant_pool[method_info.name_index].(Constant_Utf8_Info); ok do name = string(name_entry.bytes);
+		else do return .BAD_CLASS;
+
+		if descriptor_entry, ok := constant_pool[method_info.descriptor_index].(Constant_Utf8_Info); ok do descriptor = string(descriptor_entry.bytes);
+		else do return .BAD_CLASS;		
+		
+		method := make_method();
+		method.class = c;
+		method.name = name;
+		method.descriptor = descriptor;
+		method.access = method_info.access;
+
+		if method.access & (ACC_NATIVE | ACC_ABSTRACT) == 0 {
+			for attr in method_info.attributes {
+				if code, ok := attr.(Code_Attribute_Info); ok {
+					c := make_code();
+					c.max_stack = code.max_stack;
+					c.max_locals = code.max_locals;
+					c.code = code.code; // TODO
+					c.exception_table = code.exception_table;
+					c.attributes = code.attributes;
+					method.code = c;
+					break;
+				}
+			}
+		}
+
+		c.method_by_name_and_descriptor[fmt.aprintf("%s%s", method.name, method.descriptor)] = method; // TODO: leak
+	}
+
+	return .NO_ERROR;
 }
 
 @private
@@ -33,8 +66,6 @@ bootstrap_class_loader :: proc(using cl: ^Class_Loader) {
 	if _ccf, err := load_class_file("java.lang.Class"); err == .NO_ERROR do ccf = _ccf;
 	else do panic("Unable to load java.lang.Class");
 
-	fmt.println("loading java.lang.Object");
-
 	oc := make_class();
 	oc.name = "java.lang.Object";
 	oc.major = ocf.major;
@@ -44,10 +75,8 @@ bootstrap_class_loader :: proc(using cl: ^Class_Loader) {
 	oc.super_class = nil;
 	// TODO: interfaces
 	oc.fields = ocf.fields;
-	load_methods(oc, ccf.methods);
+	load_methods(oc, ocf.methods);
 	oc.attributes = ocf.attributes;
-
-	fmt.println("loading java.lang.Class");
 
 	cc := make_class();
 	cc.name = "java.lang.Class";
@@ -61,10 +90,18 @@ bootstrap_class_loader :: proc(using cl: ^Class_Loader) {
 	load_methods(cc, ccf.methods);
 	cc.attributes = ccf.attributes;
 
+	oci := make_object(oc);
+	// TODO
+
+	cci := make_object(cc);
+	// TODO
+
 	class_by_name["java.lang.Object"] = oc;
 	class_by_name["java.lang.Class"] = cc;
 	object_class = oc;
+	object_class_instance = oci;
 	class_class = cc;
+	class_class_instance = cci;
 }
 
 make_class_loader :: proc() -> ^Class_Loader {
@@ -154,8 +191,6 @@ get_class_by_name :: proc(using cl: ^Class_Loader, name: string) -> (^Class, Loa
 
 	if _class_file, err := load_class_file(rname); err == .NO_ERROR do class_file = _class_file;
 	else do return nil, .PARSE_ERROR;
-
-	fmt.println("loading", rname);
 
 	if _class, err := load_class_from_class_file(cl, class_file); err == .NO_ERROR do class = _class;
 	else do return nil, err;
