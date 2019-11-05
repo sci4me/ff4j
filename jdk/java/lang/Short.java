@@ -1,7 +1,8 @@
 package java.lang;
 
 public class Short extends Number {
-    public static final Class<Short>  TYPE = (Class<Short>) Class.getPrimitiveClass("short");
+    @SuppressWarnings("unchecked")
+    public static final Class<Short> TYPE = (Class<Short>) Class.getPrimitiveClass("short");
 
     private final short value;
 

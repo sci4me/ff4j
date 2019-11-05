@@ -2,8 +2,10 @@
 package java.lang;
 
 public final class Character {
-    private final char value;
+    @SuppressWarnings("unchecked")
     public static final Class<Character>  TYPE = (Class<Character>) Class.getPrimitiveClass("char");
+
+    private final char value;
 
     public static Character valueOf(char value) {
         return new Character(value);

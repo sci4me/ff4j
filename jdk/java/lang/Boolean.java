@@ -3,9 +3,11 @@ package java.lang;
 // TODO: implement Serializable, Comparable<Boolean>
 
 public final class Boolean {
+    @SuppressWarnings("unchecked")
+    public static final Class<Boolean> TYPE = (Class<Boolean>) Class.getPrimitiveClass("boolean");
+
     public static final Boolean TRUE = new Boolean(true);
     public static final Boolean FALSE = new Boolean(false);
-    public static final Class<Boolean> TYPE = (Class<Boolean>) Class.getPrimitiveClass("boolean");
     
     private final boolean value;
 

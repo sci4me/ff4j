@@ -1,9 +1,11 @@
 package java.lang;
 
 public final class Integer extends Number {
-    public static final int MIN_VALUE = 0x80000000;
-    public static final int MAX_VALUE = 0x7fffffff;
+    @SuppressWarnings("unchecked")
     public static final Class<Integer> TYPE = (Class<Integer>) Class.getPrimitiveClass("int");
+    
+    public static final int MIN_VALUE = 0x80000000;
+    public static final int MAX_VALUE = 0x7FFFFFFF;
 
     private final int value;
 

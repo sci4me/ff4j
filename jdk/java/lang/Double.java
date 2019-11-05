@@ -1,6 +1,7 @@
 package java.lang;
 
 public final class Double extends Number {
+    @SuppressWarnings("unchecked")
     public static final Class<Double> TYPE = (Class<Double>) Class.getPrimitiveClass("double");
 
     private final double value;
@@ -28,4 +29,6 @@ public final class Double extends Number {
         }
         return false;
     }
+
+    // TODO: hashCode
 }

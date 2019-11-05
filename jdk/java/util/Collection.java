@@ -8,6 +8,7 @@ public interface Collection<E> extends Iterable<E> {
     public boolean remove(E e);
     public int size();
 
+    @SuppressWarnings("unchecked")
     public default <T extends E> boolean retainAll(final Collection<T> c) {
         boolean ret = false;
         Iterator<E> i = iterator();
@@ -59,6 +60,7 @@ public interface Collection<E> extends Iterable<E> {
         return arr;
     }
 
+    @SuppressWarnings("unchecked")
     public default <T>T[] toArray(final T[] a) {
         int i = 0;
         for (E e : this) {

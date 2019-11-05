@@ -12,8 +12,10 @@ Load_Error :: enum {
 
 Class_Loader :: struct {
 	class_by_name: map[string]^Class,
+
 	object_class: ^Class,
 	object_class_instance: ^Object,
+	
 	class_class: ^Class,
 	class_class_instance: ^Object
 }

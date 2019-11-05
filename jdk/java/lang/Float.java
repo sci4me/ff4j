@@ -1,6 +1,7 @@
 package java.lang;
 
-public class Float extends Number {
+public final class Float extends Number {
+    @SuppressWarnings("unchecked")
     public static final Class<Float> TYPE = (Class<Float>) Class.getPrimitiveClass("float");
 
     private final float value;
@@ -28,4 +29,6 @@ public class Float extends Number {
         }
         return false;
     }
+
+    // TODO: hashCode
 }

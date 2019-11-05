@@ -1,7 +1,8 @@
 package java.lang;
 
 public final class Long extends Number {
-    public static final Class<Long>  TYPE = (Class<Long>) Class.getPrimitiveClass("long");
+    @SuppressWarnings("unchecked")
+    public static final Class<Long> TYPE = (Class<Long>) Class.getPrimitiveClass("long");
 
     private final long value;
 
@@ -28,4 +29,6 @@ public final class Long extends Number {
         }
         return false;
     }
+
+    // TODO: hashCode
 }
