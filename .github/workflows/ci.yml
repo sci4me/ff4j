@@ -19,4 +19,4 @@ jobs:
         make release
         popd
     - name: Build
-      run: ./odin build .
+      run: ./Odin/odin build .
