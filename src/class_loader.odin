@@ -6,9 +6,48 @@ Class_Loader :: struct {
 	class_by_name: map[string]^Class
 }
 
+@private
+bootstrap_class_loader :: proc(using cl: ^Class_Loader) {
+	ocf, ccf: Class_File;
+
+	if _ocf, err := load_class_file("java.lang.Object"); err == .NO_ERROR do ocf = _ocf;
+	else do panic("Unable to load java.lang.Object");
+
+	if _ccf, err := load_class_file("java.lang.Class"); err == .NO_ERROR do ccf = _ccf;
+	else do panic("Unable to load java.lang.Class");
+
+	oc := new(Class);
+	oc.name = "java.lang.Object";
+	oc.major = ocf.major;
+	oc.minor = ocf.minor;
+	oc.constant_pool = ocf.constant_pool;
+	oc.access = ocf.access;
+	oc.super_class = nil;
+	// TODO: interfaces
+	oc.fields = ocf.fields;
+	oc.methods = ocf.methods;
+	oc.attributes = ocf.attributes;
+
+	cc := new(Class);
+	cc.name = "java.lang.Class";
+	cc.major = ccf.major;
+	cc.minor = ccf.minor;
+	cc.constant_pool = ccf.constant_pool;
+	cc.access = ccf.access;
+	cc.super_class = oc;
+	// TODO: interfaces
+	cc.fields = ccf.fields;
+	cc.methods = ccf.methods;
+	cc.attributes = ccf.attributes;
+
+	class_by_name["java.lang.Object"] = oc;
+	class_by_name["java.lang.Class"] = cc;
+}
+
 make_class_loader :: proc() -> ^Class_Loader {
 	cl := new(Class_Loader);
 	cl.class_by_name = make(map[string]^Class);
+	bootstrap_class_loader(cl);
 	return cl;
 }
 
@@ -73,9 +112,11 @@ load_class_from_class_file :: proc(cl: ^Class_Loader, using cf: Class_File) -> (
 	c.methods = methods;
 	c.attributes = attributes;
 
-	// TODO: call <clinit>
+	// TODO: call <clinit> on c
 
 	class_instance := make_object(cl.class_by_name["java.lang.Class"]);
+
+	// TODO: call <cinit> on class_instance
 
 	return c, true;
 }
