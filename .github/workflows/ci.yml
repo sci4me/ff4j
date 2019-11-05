@@ -54,3 +54,6 @@ jobs:
       - name: Build JVM
         run: |
           make ODIN_DIR=Odin
+      - name: Build JDK
+        run: |
+          ./build-jdk
