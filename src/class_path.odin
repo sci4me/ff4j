@@ -2,6 +2,7 @@ package fjvm
 
 import "core:os"
 import "core:strings"
+import "core:fmt"
 
 load_class_file :: proc(name: string) -> (Class_File, Parse_Error) {
 	prefix := "";
