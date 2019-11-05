@@ -1,8 +1,9 @@
 # FF4J
-FF4J is a hobby JVM implementation. Its main purpose is to help me better myself as a developer.
+FF4J is a hobby JVM implementation. Its main purpose is to help me better myself as a developer (and entertain me).
 
 ## What FF4J Is
  - A toy project
+ - Kinda neat
 
 ## What FF4J Isn't
  - "Production Ready"
