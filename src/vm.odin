@@ -28,6 +28,9 @@ run_main_class :: proc(using vm: ^VM, name: string, args: []string) {
 	if !ok do fail("Error: Main method not found in class %s, please define the main method as:\n   public static void main(String[] args)", name);
 
 	thread := make_java_thread(instance, main_method);
+	thread.state = .RUNNABLE;
+	push_stack_frame(&thread.interp, main_method, 0);
+
 	append(&threads, thread);
 
 	run(vm);

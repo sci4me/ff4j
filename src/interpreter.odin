@@ -39,7 +39,7 @@ delete_interpreter :: proc(using i: ^Interpreter) {
 	delete(stack_data);
 }
 
-push_stack_frame :: proc(using i: ^Interpreter, method: ^Method, return_pc := 0) {
+push_stack_frame :: proc(using i: ^Interpreter, method: ^Method, return_pc: int) {
 	max_locals := int(method.code.max_locals);
 	max_stack := int(method.code.max_stack);
 
