@@ -10,7 +10,9 @@ Load_Error :: enum {
 }
 
 Class_Loader :: struct {
-	class_by_name: map[string]^Class
+	class_by_name: map[string]^Class,
+	object_class: ^Class,
+	class_class: ^Class
 }
 
 @private
@@ -49,6 +51,8 @@ bootstrap_class_loader :: proc(using cl: ^Class_Loader) {
 
 	class_by_name["java.lang.Object"] = oc;
 	class_by_name["java.lang.Class"] = cc;
+	object_class = oc;
+	class_class = cc;
 }
 
 make_class_loader :: proc() -> ^Class_Loader {
@@ -59,6 +63,7 @@ make_class_loader :: proc() -> ^Class_Loader {
 }
 
 delete_class_loader :: proc(using cl: ^Class_Loader) {
+	for _, v in class_by_name do free(v);
 	delete(class_by_name);
 	free(cl);
 }
@@ -119,7 +124,7 @@ load_class_from_class_file :: proc(cl: ^Class_Loader, using cf: Class_File) -> (
 	c.methods = methods;
 	c.attributes = attributes;
 
-	class_instance := make_object(cl.class_by_name["java.lang.Class"]);
+	class_instance := make_object(cl.class_class);
 
 	// TODO: call <clinit> if it exists
 	// TODO: call <init>
