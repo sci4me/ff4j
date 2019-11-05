@@ -1,3 +1,5 @@
+[![CI Status](https://github.com/sci4me/ff4j/workflows/CI/badge.svg)](https://github.com/sci4me/ff4j/actions)
+
 # FF4J
 FF4J is a hobby JVM implementation. Its main purpose is to help me better myself as a developer (and entertain me).
 
