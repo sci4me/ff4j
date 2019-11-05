@@ -5,11 +5,22 @@ on: [push, pull_request]
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+        matrix:
+          os: [ubuntu-latest, macOS-latest]
 
     steps:
     - uses: actions/checkout@v1
-    - name: Install LLVM
+
+    - name: (macOS) Install LLVM and setup PATH
+      if: startsWith(matrix.os, 'macOS')
+      run: |
+        brew install llvm
+        echo ::add-path::/usr/local/opt/llvm/bin
+        echo ::set-env name=CPATH::`xcrun --show-sdk-path`/usr/include
+    - name: (Linux) Install LLVM
+      if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo apt-get install llvm
     - name: Install Odin
