@@ -1,3 +1,5 @@
+package ff4j
+
 AALOAD 			:: 0x32;
 AASTORE 		:: 0x53;
 ACONST_NULL 	:: 0x01;
@@ -87,7 +89,7 @@ GOTO			:: 0xA7;
 GOTO_W			:: 0xC8;
 I2B				:: 0x91;
 I2C 			:: 0x92;
-I2D				:: 0x78;
+I2D				:: 0x87;
 I2F				:: 0x86;
 I2L				:: 0x85;
 I2S				:: 0x93;
@@ -118,7 +120,7 @@ IFLT 			:: 0x9B;
 IFNE 			:: 0x9A;
 IFNONNULL 		:: 0xC7;
 IFNULL 			:: 0xC6;
-IINC 			:: 0x86;
+IINC 			:: 0x84;
 ILOAD 			:: 0x15;
 ILOAD_0 		:: 0x1A;
 ILOAD_1 		:: 0x1B;
