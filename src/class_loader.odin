@@ -2,6 +2,13 @@ package fjvm
 
 import "core:fmt"
 
+Load_Error :: enum {
+	NO_ERROR,
+	PARSE_ERROR,
+	BAD_CLASS,
+	OTHER
+}
+
 Class_Loader :: struct {
 	class_by_name: map[string]^Class
 }
@@ -57,7 +64,7 @@ delete_class_loader :: proc(using cl: ^Class_Loader) {
 }
 
 @private
-load_class_from_class_file :: proc(cl: ^Class_Loader, using cf: Class_File) -> (^Class, bool) {
+load_class_from_class_file :: proc(cl: ^Class_Loader, using cf: Class_File) -> (^Class, Load_Error) {
 	name: string;
 	_super_class: ^Class;
 	_interfaces := make([]^Class, len(interfaces));
@@ -66,23 +73,23 @@ load_class_from_class_file :: proc(cl: ^Class_Loader, using cf: Class_File) -> (
 		class_info_entry: Constant_Class_Info;
 
 		if _class_info_entry, ok := constant_pool[this_class].(Constant_Class_Info); ok do class_info_entry = _class_info_entry;
-		else do return nil, false;
+		else do return nil, .BAD_CLASS;
 
 		if name_entry, ok := constant_pool[class_info_entry.name_index].(Constant_Utf8_Info); ok do name = string(name_entry.bytes);
-		else do return nil, false;
+		else do return nil, .BAD_CLASS;
 	}
 
 	if super_class != 0 {
 		class_info_entry: Constant_Class_Info;
 
 		if _class_info_entry, ok := constant_pool[super_class].(Constant_Class_Info); ok do class_info_entry = _class_info_entry;
-		else do return nil, false;
+		else do return nil, .BAD_CLASS;
 
 		if name_entry, ok := constant_pool[class_info_entry.name_index].(Constant_Utf8_Info); ok {
-			class := get_class_by_name(cl, string(name_entry.bytes));
-			if class == nil do return nil, false;
+			class, err:= get_class_by_name(cl, string(name_entry.bytes));
+			if err != .NO_ERROR do return nil, err;
 			_super_class = class;
-		} else do return nil, false;
+		} else do return nil, .BAD_CLASS;
 	}
 
 	for i in 0..<len(interfaces) {
@@ -90,14 +97,14 @@ load_class_from_class_file :: proc(cl: ^Class_Loader, using cf: Class_File) -> (
 		class_info_entry: Constant_Class_Info;
 
 		if _class_info_entry, ok := constant_pool[interface_index].(Constant_Class_Info); ok do class_info_entry = _class_info_entry;
-		else do return nil, false;
+		else do return nil, .BAD_CLASS;
 
 		if name_entry, ok := constant_pool[class_info_entry.name_index].(Constant_Utf8_Info); ok {
-			class := get_class_by_name(cl, string(name_entry.bytes));
-			if class == nil do return nil, false;
-			if class.access & ACC_INTERFACE == 0 do return nil, false;
+			class, err := get_class_by_name(cl, string(name_entry.bytes));
+			if err != .NO_ERROR do return nil, err;
+			if class.access & ACC_INTERFACE == 0 do return nil, .BAD_CLASS;
 			_interfaces[i] = class;
-		} else do return nil, false;
+		} else do return nil, .BAD_CLASS;
 	}
 
 	c := new(Class);
@@ -112,30 +119,26 @@ load_class_from_class_file :: proc(cl: ^Class_Loader, using cf: Class_File) -> (
 	c.methods = methods;
 	c.attributes = attributes;
 
-	// TODO: call <clinit> on c
-
 	class_instance := make_object(cl.class_by_name["java.lang.Class"]);
 
-	// TODO: call <cinit> on class_instance
+	// TODO: call <clinit> if it exists
+	// TODO: call <init>
 
-	return c, true;
+	return c, .NO_ERROR;
 }
 
-get_class_by_name :: proc(using cl: ^Class_Loader, name: string) -> ^Class {
-	if class, ok := class_by_name[name]; ok do return class;
+get_class_by_name :: proc(using cl: ^Class_Loader, name: string) -> (^Class, Load_Error) {
+	if class, ok := class_by_name[name]; ok do return class, .NO_ERROR;
 
-	class_file, err := load_class_file(name);
-	if err != .NO_ERROR {
-		// TODO
-		return nil;
-	}
+	class_file: Class_File;
+	class: ^Class;
 
-	class, ok := load_class_from_class_file(cl, class_file);
-	if !ok {
-		// TODO
-		return nil;
-	}
+	if _class_file, err := load_class_file(name); err == .NO_ERROR do class_file = _class_file;
+	else do return nil, .PARSE_ERROR;
+
+	if _class, err := load_class_from_class_file(cl, class_file); err == .NO_ERROR do class = _class;
+	else do return nil, err;
 
 	class_by_name[name] = class;
-	return class;
+	return class, .NO_ERROR;
 }
