@@ -1,6 +1,9 @@
 #!/bin/bash
-rm -rf jdk-bin/*
+rm -rf jdk-bin
+mkdir jdk-bin
 
 find jdk -name "*.java" > jdk-sources.txt
 javac -Xlint:unchecked -Xbootclasspath:jdk -s jdk -d jdk-bin -g @jdk-sources.txt
+RESULT=$?
 rm -f jdk-sources.txt
+exit $RESULT

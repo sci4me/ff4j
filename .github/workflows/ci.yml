@@ -9,6 +9,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - name: Install LLVM
+      run: |
+        sudo apt-get install llvm
     - name: Install Odin
       run: |
         git clone https://github.com/odin-lang/Odin.git
