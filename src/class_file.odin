@@ -549,8 +549,21 @@ parse_constant_value_attribute_info :: proc(r: ^DataReader) -> (ConstantValue_At
 parse_code_attribute_info :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> (Code_Attribute_Info, Parse_Error) {
 	parse_exception_table :: proc(r: ^DataReader) -> ([]Exception_Table_Entry, Parse_Error) {
 		parse_entry :: proc(r: ^DataReader) -> (Exception_Table_Entry, Parse_Error) {
-			unimplemented();
-			return {}, .OTHER;
+			start_pc, end_pc, handler_pc, catch_type: u16;
+
+			if _start_pc, ok := read_u16(r); ok do start_pc = _start_pc;
+			else do return {}, .EOF;
+
+			if _end_pc, ok := read_u16(r); ok do end_pc = _end_pc;
+			else do return {}, .EOF;
+
+			if _handler_pc, ok := read_u16(r); ok do handler_pc = _handler_pc;
+			else do return {}, .EOF;
+
+			if _catch_type, ok := read_u16(r); ok do catch_type = _catch_type;
+			else do return {}, .EOF;			
+			
+			return Exception_Table_Entry{start_pc, end_pc, handler_pc, catch_type}, .NO_ERROR;
 		}
 
 		count: u16;
