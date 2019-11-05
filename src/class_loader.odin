@@ -1,5 +1,6 @@
 package fjvm
 
+import "core:strings"
 import "core:fmt"
 
 Load_Error :: enum {
@@ -16,6 +17,13 @@ Class_Loader :: struct {
 }
 
 @private
+load_methods :: proc(using c: ^Class, methods: []Method_Info) {
+	fmt.println("loading methods:");
+	fmt.println(methods);
+	fmt.println();
+}
+
+@private
 bootstrap_class_loader :: proc(using cl: ^Class_Loader) {
 	ocf, ccf: Class_File;
 
@@ -25,7 +33,9 @@ bootstrap_class_loader :: proc(using cl: ^Class_Loader) {
 	if _ccf, err := load_class_file("java.lang.Class"); err == .NO_ERROR do ccf = _ccf;
 	else do panic("Unable to load java.lang.Class");
 
-	oc := new(Class);
+	fmt.println("loading java.lang.Object");
+
+	oc := make_class();
 	oc.name = "java.lang.Object";
 	oc.major = ocf.major;
 	oc.minor = ocf.minor;
@@ -34,10 +44,12 @@ bootstrap_class_loader :: proc(using cl: ^Class_Loader) {
 	oc.super_class = nil;
 	// TODO: interfaces
 	oc.fields = ocf.fields;
-	oc.methods = ocf.methods;
+	load_methods(oc, ccf.methods);
 	oc.attributes = ocf.attributes;
 
-	cc := new(Class);
+	fmt.println("loading java.lang.Class");
+
+	cc := make_class();
 	cc.name = "java.lang.Class";
 	cc.major = ccf.major;
 	cc.minor = ccf.minor;
@@ -46,7 +58,7 @@ bootstrap_class_loader :: proc(using cl: ^Class_Loader) {
 	cc.super_class = oc;
 	// TODO: interfaces
 	cc.fields = ccf.fields;
-	cc.methods = ccf.methods;
+	load_methods(cc, ccf.methods);
 	cc.attributes = ccf.attributes;
 
 	class_by_name["java.lang.Object"] = oc;
@@ -112,7 +124,7 @@ load_class_from_class_file :: proc(cl: ^Class_Loader, using cf: Class_File) -> (
 		} else do return nil, .BAD_CLASS;
 	}
 
-	c := new(Class);
+	c := make_class();
 	c.name = name;
 	c.major = major;
 	c.minor = minor;
@@ -121,7 +133,7 @@ load_class_from_class_file :: proc(cl: ^Class_Loader, using cf: Class_File) -> (
 	c.super_class = _super_class;
 	c.interfaces = _interfaces;
 	c.fields = fields;
-	c.methods = methods;
+	load_methods(c, methods);
 	c.attributes = attributes;
 
 	class_instance := make_object(cl.class_class);
@@ -133,17 +145,21 @@ load_class_from_class_file :: proc(cl: ^Class_Loader, using cf: Class_File) -> (
 }
 
 get_class_by_name :: proc(using cl: ^Class_Loader, name: string) -> (^Class, Load_Error) {
-	if class, ok := class_by_name[name]; ok do return class, .NO_ERROR;
+	rname, _ := strings.replace_all(name, "/", ".", context.temp_allocator);
+
+	if class, ok := class_by_name[rname]; ok do return class, .NO_ERROR;
 
 	class_file: Class_File;
 	class: ^Class;
 
-	if _class_file, err := load_class_file(name); err == .NO_ERROR do class_file = _class_file;
+	if _class_file, err := load_class_file(rname); err == .NO_ERROR do class_file = _class_file;
 	else do return nil, .PARSE_ERROR;
+
+	fmt.println("loading", rname);
 
 	if _class, err := load_class_from_class_file(cl, class_file); err == .NO_ERROR do class = _class;
 	else do return nil, err;
 
-	class_by_name[name] = class;
+	class_by_name[rname] = class;
 	return class, .NO_ERROR;
 }

@@ -5,6 +5,8 @@ import "core:strings"
 import "core:fmt"
 
 load_class_file :: proc(name: string) -> (Class_File, Parse_Error) {
+	assert(!strings.contains(name, "/"));
+
 	prefix := "";
 	if len(name) >= 4 && name[0:4] == "java" do prefix = "jdk-bin/"; // TODO: HACK
 

@@ -9,6 +9,17 @@ Class :: struct {
 	super_class: ^Class,
 	interfaces: []^Class,	
 	fields: []Field_Info,
-	methods: []Method_Info,
+	method_by_name_and_descriptor: map[string]^Method,
 	attributes: []Attribute_Info
+}
+
+make_class :: proc() -> ^Class {
+	c := new(Class);
+	c.method_by_name_and_descriptor = make(map[string]^Method);
+	return c;
+}
+
+delete_class :: proc(using c: ^Class) {
+	delete(method_by_name_and_descriptor);
+	free(c);
 }
