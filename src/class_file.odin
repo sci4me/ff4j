@@ -330,174 +330,170 @@ Class_File :: struct {
 	attributes: []Attribute_Info
 }
 
-@private
-parse_constant_class_info :: proc(r: ^DataReader) -> (Constant_Class_Info, Parse_Error) {
-	if name_index, ok := read_u16(r); ok do return Constant_Class_Info{name_index}, .NO_ERROR;
-	else do return {}, .EOF;
-}
-
-@private
-parse_constant_fieldref_info :: proc(r: ^DataReader) -> (Constant_Fieldref_Info, Parse_Error) {
-	class_index, name_and_type_index: u16;
-
-	if _class_index, ok := read_u16(r); ok do class_index = _class_index;
-	else do return {}, .EOF;
-
-	if _name_and_type_index, ok := read_u16(r); ok do name_and_type_index = _name_and_type_index;
-	else do return {}, .EOF;
-
-	return Constant_Fieldref_Info{class_index, name_and_type_index}, .NO_ERROR;
-}
-
-@private
-parse_constant_methodref_info :: proc(r: ^DataReader) -> (Constant_Methodref_Info, Parse_Error) {
-	class_index, name_and_type_index: u16;
-
-	if _class_index, ok := read_u16(r); ok do class_index = _class_index;
-	else do return {}, .EOF;
-
-	if _name_and_type_index, ok := read_u16(r); ok do name_and_type_index = _name_and_type_index;
-	else do return {}, .EOF;
-
-	return Constant_Methodref_Info{class_index, name_and_type_index}, .NO_ERROR;
-}
-
-@private
-parse_constant_interface_methodref_info :: proc(r: ^DataReader) -> (Constant_InterfaceMethodref_Info, Parse_Error) {
-	class_index, name_and_type_index: u16;
-
-	if _class_index, ok := read_u16(r); ok do class_index = _class_index;
-	else do return {}, .EOF;
-
-	if _name_and_type_index, ok := read_u16(r); ok do name_and_type_index = _name_and_type_index;
-	else do return {}, .EOF;
-
-	return Constant_InterfaceMethodref_Info{class_index, name_and_type_index}, .NO_ERROR;
-}
-
-@private
-parse_constant_string_info :: proc(r: ^DataReader) -> (Constant_String_Info, Parse_Error) {
-	if string_index, ok := read_u16(r); ok do return Constant_String_Info{string_index}, .NO_ERROR;
-	else do return {}, .EOF;
-}
-
-@private
-parse_constant_integer_info :: proc(r: ^DataReader) -> (Constant_Integer_Info, Parse_Error) {
-	if bytes, ok := read_n_static(r, 4); ok do return Constant_Integer_Info{bytes}, .NO_ERROR;
-	else do return {}, .EOF;
-}
-
-@private
-parse_constant_float_info :: proc(r: ^DataReader) -> (Constant_Float_Info, Parse_Error) {
-	if bytes, ok := read_n_static(r, 4); ok do return Constant_Float_Info{bytes}, .NO_ERROR;
-	else do return {}, .EOF;
-}
-
-@private
-parse_constant_long_info :: proc(using r: ^DataReader) -> (Constant_Long_Info, Parse_Error) {
-	high_bytes, low_bytes: [4]u8;
-
-	if _high_bytes, ok := read_n_static(r, 4); ok do high_bytes = _high_bytes;
-	else do return {}, .EOF;
-
-	if _low_bytes, ok := read_n_static(r, 4); ok do low_bytes = _low_bytes;
-	else do return {}, .EOF;
-
-	return Constant_Long_Info{high_bytes, low_bytes}, .NO_ERROR;
-}
-
-@private
-parse_constant_double_info :: proc(using r: ^DataReader) -> (Constant_Double_Info, Parse_Error) {
-	high_bytes, low_bytes: [4]u8;
-
-	if _high_bytes, ok := read_n_static(r, 4); ok do high_bytes = _high_bytes;
-	else do return {}, .EOF;
-
-	if _low_bytes, ok := read_n_static(r, 4); ok do low_bytes = _low_bytes;
-	else do return {}, .EOF;
-
-	return Constant_Double_Info{high_bytes, low_bytes}, .NO_ERROR;
-}
-
-@private
-parse_constant_nameandtype_info :: proc(r: ^DataReader) -> (Constant_NameAndType_Info, Parse_Error) {
-	name_index, descriptor_index: u16;
-
-	if _name_index, ok := read_u16(r); ok do name_index = _name_index;
-	else do return {}, .EOF;
-
-	if _descriptor_index, ok := read_u16(r); ok do descriptor_index = _descriptor_index;
-	else do return {}, .EOF;
-
-	return Constant_NameAndType_Info{name_index, descriptor_index}, .NO_ERROR;
-}
-
-@private
-parse_constant_utf8_info :: proc(r: ^DataReader) -> (Constant_Utf8_Info, Parse_Error) {
-	length: u16;
-
-	if _length, ok := read_u16(r); ok do length = _length;
-	else do return {}, .EOF;
-
-	if bytes, ok := read_n_dynamic(r, int(length)); ok do return Constant_Utf8_Info{bytes}, .NO_ERROR;
-	else do return {}, .EOF;
-}
-
-@private
-parse_constant_methodhandle_info :: proc(r: ^DataReader) -> (Constant_MethodHandle_Info, Parse_Error) {
-	reference_kind: u8;
-	reference_index: u16;
-
-	if _reference_kind, ok := read_u8(r); ok do reference_kind = _reference_kind;
-	else do return {}, .EOF;
-
-	if _reference_index, ok := read_u16(r); ok do reference_index = _reference_index;
-	else do return {}, .EOF;
-
-	return Constant_MethodHandle_Info{reference_kind, reference_index}, .NO_ERROR;
-}
-
-@private
-parse_constant_methodtype_info :: proc(r: ^DataReader) -> (Constant_MethodType_Info, Parse_Error) {
-	if descriptor_index, ok := read_u16(r); ok do return Constant_MethodType_Info{descriptor_index}, .NO_ERROR;
-	else do return {}, .EOF;
-}
-
-@private
-parse_constant_invokedynamic_info :: proc(r: ^DataReader) -> (Constant_InvokeDynamic_Info, Parse_Error) {
-	bootstrap_method_attr_index, name_and_type_index: u16;
-
-	if _bootstrap_method_attr_index, ok := read_u16(r); ok do bootstrap_method_attr_index = _bootstrap_method_attr_index;
-	else do return {}, .EOF;
-
-	if _name_and_type_index, ok := read_u16(r); ok do name_and_type_index = _name_and_type_index;
-	else do return {}, .EOF;
-
-	return Constant_InvokeDynamic_Info{bootstrap_method_attr_index, name_and_type_index}, .NO_ERROR;
+Parse_Error :: enum {
+	NO_ERROR,
+	EOF,
+	BAD_MAGIC,
+	BAD_CONSTANT_INFO_TAG,
+	BAD_ATTRIBUTE_NAME_INDEX,
+	ATTRIBUTE_NAME_IS_NOT_UTF8_CONSTANT,
+	OTHER
 }
 
 @private
 parse_constant_pool_info :: proc(r: ^DataReader) -> (ConstantPool_Info, Parse_Error) {
+	parse_class_info :: proc(r: ^DataReader) -> (Constant_Class_Info, Parse_Error) {
+		if name_index, ok := read_u16(r); ok do return Constant_Class_Info{name_index}, .NO_ERROR;
+		else do return {}, .EOF;
+	}
+
+	parse_fieldref_info :: proc(r: ^DataReader) -> (Constant_Fieldref_Info, Parse_Error) {
+		class_index, name_and_type_index: u16;
+
+		if _class_index, ok := read_u16(r); ok do class_index = _class_index;
+		else do return {}, .EOF;
+
+		if _name_and_type_index, ok := read_u16(r); ok do name_and_type_index = _name_and_type_index;
+		else do return {}, .EOF;
+
+		return Constant_Fieldref_Info{class_index, name_and_type_index}, .NO_ERROR;
+	}
+
+	parse_methodref_info :: proc(r: ^DataReader) -> (Constant_Methodref_Info, Parse_Error) {
+		class_index, name_and_type_index: u16;
+
+		if _class_index, ok := read_u16(r); ok do class_index = _class_index;
+		else do return {}, .EOF;
+
+		if _name_and_type_index, ok := read_u16(r); ok do name_and_type_index = _name_and_type_index;
+		else do return {}, .EOF;
+
+		return Constant_Methodref_Info{class_index, name_and_type_index}, .NO_ERROR;
+	}
+
+	parse_interface_methodref_info :: proc(r: ^DataReader) -> (Constant_InterfaceMethodref_Info, Parse_Error) {
+		class_index, name_and_type_index: u16;
+
+		if _class_index, ok := read_u16(r); ok do class_index = _class_index;
+		else do return {}, .EOF;
+
+		if _name_and_type_index, ok := read_u16(r); ok do name_and_type_index = _name_and_type_index;
+		else do return {}, .EOF;
+
+		return Constant_InterfaceMethodref_Info{class_index, name_and_type_index}, .NO_ERROR;
+	}
+
+	parse_string_info :: proc(r: ^DataReader) -> (Constant_String_Info, Parse_Error) {
+		if string_index, ok := read_u16(r); ok do return Constant_String_Info{string_index}, .NO_ERROR;
+		else do return {}, .EOF;
+	}
+
+	parse_integer_info :: proc(r: ^DataReader) -> (Constant_Integer_Info, Parse_Error) {
+		if bytes, ok := read_n_static(r, 4); ok do return Constant_Integer_Info{bytes}, .NO_ERROR;
+		else do return {}, .EOF;
+	}
+
+	parse_float_info :: proc(r: ^DataReader) -> (Constant_Float_Info, Parse_Error) {
+		if bytes, ok := read_n_static(r, 4); ok do return Constant_Float_Info{bytes}, .NO_ERROR;
+		else do return {}, .EOF;
+	}
+
+	parse_long_info :: proc(using r: ^DataReader) -> (Constant_Long_Info, Parse_Error) {
+		high_bytes, low_bytes: [4]u8;
+
+		if _high_bytes, ok := read_n_static(r, 4); ok do high_bytes = _high_bytes;
+		else do return {}, .EOF;
+
+		if _low_bytes, ok := read_n_static(r, 4); ok do low_bytes = _low_bytes;
+		else do return {}, .EOF;
+
+		return Constant_Long_Info{high_bytes, low_bytes}, .NO_ERROR;
+	}
+
+	parse_double_info :: proc(using r: ^DataReader) -> (Constant_Double_Info, Parse_Error) {
+		high_bytes, low_bytes: [4]u8;
+
+		if _high_bytes, ok := read_n_static(r, 4); ok do high_bytes = _high_bytes;
+		else do return {}, .EOF;
+
+		if _low_bytes, ok := read_n_static(r, 4); ok do low_bytes = _low_bytes;
+		else do return {}, .EOF;
+
+		return Constant_Double_Info{high_bytes, low_bytes}, .NO_ERROR;
+	}
+
+	parse_nameandtype_info :: proc(r: ^DataReader) -> (Constant_NameAndType_Info, Parse_Error) {
+		name_index, descriptor_index: u16;
+
+		if _name_index, ok := read_u16(r); ok do name_index = _name_index;
+		else do return {}, .EOF;
+
+		if _descriptor_index, ok := read_u16(r); ok do descriptor_index = _descriptor_index;
+		else do return {}, .EOF;
+
+		return Constant_NameAndType_Info{name_index, descriptor_index}, .NO_ERROR;
+	}
+
+	parse_utf8_info :: proc(r: ^DataReader) -> (Constant_Utf8_Info, Parse_Error) {
+		length: u16;
+
+		if _length, ok := read_u16(r); ok do length = _length;
+		else do return {}, .EOF;
+
+		if bytes, ok := read_n_dynamic(r, int(length)); ok do return Constant_Utf8_Info{bytes}, .NO_ERROR;
+		else do return {}, .EOF;
+	}
+
+	parse_methodhandle_info :: proc(r: ^DataReader) -> (Constant_MethodHandle_Info, Parse_Error) {
+		reference_kind: u8;
+		reference_index: u16;
+
+		if _reference_kind, ok := read_u8(r); ok do reference_kind = _reference_kind;
+		else do return {}, .EOF;
+
+		if _reference_index, ok := read_u16(r); ok do reference_index = _reference_index;
+		else do return {}, .EOF;
+
+		return Constant_MethodHandle_Info{reference_kind, reference_index}, .NO_ERROR;
+	}
+
+	parse_methodtype_info :: proc(r: ^DataReader) -> (Constant_MethodType_Info, Parse_Error) {
+		if descriptor_index, ok := read_u16(r); ok do return Constant_MethodType_Info{descriptor_index}, .NO_ERROR;
+		else do return {}, .EOF;
+	}
+
+	parse_invokedynamic_info :: proc(r: ^DataReader) -> (Constant_InvokeDynamic_Info, Parse_Error) {
+		bootstrap_method_attr_index, name_and_type_index: u16;
+
+		if _bootstrap_method_attr_index, ok := read_u16(r); ok do bootstrap_method_attr_index = _bootstrap_method_attr_index;
+		else do return {}, .EOF;
+
+		if _name_and_type_index, ok := read_u16(r); ok do name_and_type_index = _name_and_type_index;
+		else do return {}, .EOF;
+
+		return Constant_InvokeDynamic_Info{bootstrap_method_attr_index, name_and_type_index}, .NO_ERROR;
+	}
+
 	tag : u8;
 
 	if _tag, ok := read_u8(r); ok do tag = _tag;
 	else do return nil, .EOF;
 
 	switch tag {
-		case CONSTANT_Class: 				return parse_constant_class_info(r);
-		case CONSTANT_Fieldref: 			return parse_constant_fieldref_info(r);
-		case CONSTANT_MethodRef:			return parse_constant_methodref_info(r);
-		case CONSTANT_InterfaceMethodref:	return parse_constant_interface_methodref_info(r);
-		case CONSTANT_String:				return parse_constant_string_info(r);
-		case CONSTANT_Integer:				return parse_constant_integer_info(r);
-		case CONSTANT_Float:				return parse_constant_float_info(r);
-		case CONSTANT_Long:					return parse_constant_long_info(r);
-		case CONSTANT_Double:				return parse_constant_double_info(r);
-		case CONSTANT_NameAndType:			return parse_constant_nameandtype_info(r);
-		case CONSTANT_Utf8:					return parse_constant_utf8_info(r);
-		case CONSTANT_MethodHandle:			return parse_constant_methodhandle_info(r);
-		case CONSTANT_MethodType:			return parse_constant_methodtype_info(r);
-		case CONSTANT_InvokeDynamic:		return parse_constant_invokedynamic_info(r);
+		case CONSTANT_Class: 				return parse_class_info(r);
+		case CONSTANT_Fieldref: 			return parse_fieldref_info(r);
+		case CONSTANT_MethodRef:			return parse_methodref_info(r);
+		case CONSTANT_InterfaceMethodref:	return parse_interface_methodref_info(r);
+		case CONSTANT_String:				return parse_string_info(r);
+		case CONSTANT_Integer:				return parse_integer_info(r);
+		case CONSTANT_Float:				return parse_float_info(r);
+		case CONSTANT_Long:					return parse_long_info(r);
+		case CONSTANT_Double:				return parse_double_info(r);
+		case CONSTANT_NameAndType:			return parse_nameandtype_info(r);
+		case CONSTANT_Utf8:					return parse_utf8_info(r);
+		case CONSTANT_MethodHandle:			return parse_methodhandle_info(r);
+		case CONSTANT_MethodType:			return parse_methodtype_info(r);
+		case CONSTANT_InvokeDynamic:		return parse_invokedynamic_info(r);
 	}
 
 	return nil, .BAD_CONSTANT_INFO_TAG;
@@ -525,16 +521,6 @@ parse_constant_pool :: proc(r: ^DataReader) -> ([]ConstantPool_Info, Parse_Error
 	}
 
 	return result, .NO_ERROR;
-}
-
-Parse_Error :: enum {
-	NO_ERROR,
-	EOF,
-	BAD_MAGIC,
-	BAD_CONSTANT_INFO_TAG,
-	BAD_ATTRIBUTE_NAME_INDEX,
-	ATTRIBUTE_NAME_IS_NOT_UTF8_CONSTANT,
-	OTHER
 }
 
 @private
@@ -612,26 +598,25 @@ parse_code_attribute_info :: proc(r: ^DataReader, constant_pool: []ConstantPool_
 // Exceptions
 
 @private
-parse_inner_class :: proc(r: ^DataReader) -> (InnerClass, Parse_Error) {
-	inner_info_index, outer_info_index, inner_name_index, inner_access: u16;
-
-	if _inner_info_index, ok := read_u16(r); ok do inner_info_index = _inner_info_index;
-	else do return {}, .EOF;
-
-	if _outer_info_index, ok := read_u16(r); ok do outer_info_index = _outer_info_index;
-	else do return {}, .EOF;
-
-	if _inner_name_index, ok := read_u16(r); ok do inner_name_index = _inner_name_index;
-	else do return {}, .EOF;
-
-	if _inner_access, ok := read_u16(r); ok do inner_access = _inner_access;
-	else do return {}, .EOF;
-
-	return InnerClass{inner_info_index, outer_info_index, inner_name_index, inner_access}, .NO_ERROR;
-}
-
-@private
 parse_inner_classes_attribute_info :: proc(r: ^DataReader) -> (InnerClasses_Attribute_Info, Parse_Error) {
+	parse_inner_class :: proc(r: ^DataReader) -> (InnerClass, Parse_Error) {
+		inner_info_index, outer_info_index, inner_name_index, inner_access: u16;
+
+		if _inner_info_index, ok := read_u16(r); ok do inner_info_index = _inner_info_index;
+		else do return {}, .EOF;
+
+		if _outer_info_index, ok := read_u16(r); ok do outer_info_index = _outer_info_index;
+		else do return {}, .EOF;
+
+		if _inner_name_index, ok := read_u16(r); ok do inner_name_index = _inner_name_index;
+		else do return {}, .EOF;
+
+		if _inner_access, ok := read_u16(r); ok do inner_access = _inner_access;
+		else do return {}, .EOF;
+
+		return InnerClass{inner_info_index, outer_info_index, inner_name_index, inner_access}, .NO_ERROR;
+	}
+
 	count: u16;
 
 	if _count, ok := read_u16(r); ok do count = _count;
@@ -693,29 +678,28 @@ parse_line_number_table_attribute_info :: proc(r: ^DataReader) -> (LineNumberTab
 }
 
 @private
-parse_local_variable_table_entry :: proc(r: ^DataReader) -> (LocalVariableTable_Entry, Parse_Error) {
-	start_pc, length, name_index, descriptor_index, index: u16;
-
-	if _start_pc, ok := read_u16(r); ok do start_pc = _start_pc;
-	else do return {}, .EOF;
-
-	if _length, ok := read_u16(r); ok do length = _length;
-	else do return {}, .EOF;
-
-	if _name_index, ok := read_u16(r); ok do name_index = _name_index;
-	else do return {}, .EOF;
-
-	if _descriptor_index, ok := read_u16(r); ok do descriptor_index = _descriptor_index;
-	else do return {}, .EOF;
-
-	if _index, ok := read_u16(r); ok do index = _index;
-	else do return {}, .EOF;
-
-	return LocalVariableTable_Entry{start_pc, length, name_index, descriptor_index, index}, .NO_ERROR;
-}
-
-@private
 parse_local_variable_table_attribute_info :: proc(r: ^DataReader) -> (LocalVariableTable_Attribute_Info, Parse_Error) {
+	parse_entry :: proc(r: ^DataReader) -> (LocalVariableTable_Entry, Parse_Error) {
+		start_pc, length, name_index, descriptor_index, index: u16;
+
+		if _start_pc, ok := read_u16(r); ok do start_pc = _start_pc;
+		else do return {}, .EOF;
+
+		if _length, ok := read_u16(r); ok do length = _length;
+		else do return {}, .EOF;
+
+		if _name_index, ok := read_u16(r); ok do name_index = _name_index;
+		else do return {}, .EOF;
+
+		if _descriptor_index, ok := read_u16(r); ok do descriptor_index = _descriptor_index;
+		else do return {}, .EOF;
+
+		if _index, ok := read_u16(r); ok do index = _index;
+		else do return {}, .EOF;
+
+		return LocalVariableTable_Entry{start_pc, length, name_index, descriptor_index, index}, .NO_ERROR;
+	}
+
 	count: u16;
 
 	if _count, ok := read_u16(r); ok do count = _count;
@@ -723,7 +707,7 @@ parse_local_variable_table_attribute_info :: proc(r: ^DataReader) -> (LocalVaria
 
 	entries := make([]LocalVariableTable_Entry, count);
 	for i in 0..<count {
-		if entry, err := parse_local_variable_table_entry(r); err == .NO_ERROR do entries[i] = entry;
+		if entry, err := parse_entry(r); err == .NO_ERROR do entries[i] = entry;
 		else do return {}, err;
 	}
 
