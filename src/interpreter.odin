@@ -5,6 +5,14 @@ import "core:runtime"
 
 DEFAULT_STACK_SIZE :: 1024 * 8;
 
+/*
+
+	Stack_Frames are not actually size_of(Stack_Frame) at runtime.
+	We allocate size_of(Stack_Frame) + (max_locals * size_of(Value)) + (max_stack * size_of(Value)).
+	We then set `locals` and `stack` to point into the memory we allocated accordingly.
+
+*/
+
 Stack_Frame :: struct {
 	prev: ^Stack_Frame,
 	method: ^Method,
@@ -37,10 +45,10 @@ push_stack_frame :: proc(using i: ^Interpreter, method: ^Method) {
 	frame_size := size_of(Stack_Frame) + ((max_locals + max_stack) * size_of(Value));
 	
 	frame := cast(^Stack_Frame) mem.alloc(frame_size, mem.DEFAULT_ALIGNMENT, stack_allocator);
+	frame_ptr := uintptr(frame);
+
 	frame.prev = current_frame;
 	frame.method = method;
-
-	frame_ptr := uintptr(frame);
 	frame.locals = transmute([]Value) runtime.Raw_Slice{rawptr(frame_ptr + offset_of(Stack_Frame, locals)), max_locals};
 	frame.stack = transmute([]Value) runtime.Raw_Slice{rawptr(frame_ptr + offset_of(Stack_Frame, stack)), max_stack};
 

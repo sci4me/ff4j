@@ -47,7 +47,7 @@ jobs:
       - name: Download and unpack LLVM binaries
         shell: cmd
         run: |
-          cd bin
+          cd Odin/bin
           curl -sL https://github.com/odin-lang/Odin/releases/download/llvm-windows/llvm-binaries.zip --output llvm-binaries.zip
           7z x llvm-binaries.zip > nul
       - name: Build JVM
