@@ -8,7 +8,6 @@ DEFAULT_STACK_SIZE :: 1024 * 8;
 Stack_Frame :: struct {
 	prev: ^Stack_Frame,
 	method: ^Method,
-	arguments: []Value,
 	locals: []Value,
 	stack: []Value
 }
@@ -31,16 +30,18 @@ delete_interpreter :: proc(using i: ^Interpreter) {
 }
 
 @private
-push_stack_frame :: proc(using i: ^Interpreter, method: ^Method, argument_count: int, local_count: int, max_stack: int) {
-	frame_size := size_of(Stack_Frame) + ((argument_count + local_count + max_stack) * size_of(Value));
+push_stack_frame :: proc(using i: ^Interpreter, method: ^Method) {
+	max_locals := int(method.code.max_locals);
+	max_stack := int(method.code.max_stack);
+
+	frame_size := size_of(Stack_Frame) + ((max_locals + max_stack) * size_of(Value));
 	
 	frame := cast(^Stack_Frame) mem.alloc(frame_size, mem.DEFAULT_ALIGNMENT, stack_allocator);
 	frame.prev = current_frame;
 	frame.method = method;
 
 	frame_ptr := uintptr(frame);
-	frame.arguments = transmute([]Value) runtime.Raw_Slice{rawptr(frame_ptr + offset_of(Stack_Frame, arguments)), argument_count};
-	frame.locals = transmute([]Value) runtime.Raw_Slice{rawptr(frame_ptr + offset_of(Stack_Frame, locals)), local_count};
+	frame.locals = transmute([]Value) runtime.Raw_Slice{rawptr(frame_ptr + offset_of(Stack_Frame, locals)), max_locals};
 	frame.stack = transmute([]Value) runtime.Raw_Slice{rawptr(frame_ptr + offset_of(Stack_Frame, stack)), max_stack};
 
 	current_frame = frame;
