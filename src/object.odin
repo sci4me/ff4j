@@ -1,4 +1,4 @@
-package fjvm
+package ffvm
 
 Object :: struct {
 	class: ^Class

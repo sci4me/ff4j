@@ -1,4 +1,4 @@
-package fjvm
+package ffvm
 
 import "core:os"
 import "core:strings"

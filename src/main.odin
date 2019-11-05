@@ -1,11 +1,11 @@
-package fjvm
+package ffvm
 
 import "core:fmt"
 import "core:os"
 
 main :: proc() {
 	if len(os.args) != 2 {
-		fmt.eprintln("Usage: fjvm <file>");
+		fmt.eprintln("Usage: ffvm <file>");
 		os.exit(1);
 		unreachable();
 	}

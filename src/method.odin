@@ -1,4 +1,4 @@
-package fjvm
+package ffvm
 
 Code :: struct {
 	max_stack: u16,
@@ -12,7 +12,9 @@ make_code :: proc() -> ^Code {
 	return new(Code);
 }
 
-delete_code :: proc(c: ^Code) {
+delete_code :: proc(using c: ^Code) {
+	if exception_table != nil do delete(exception_table);
+	if attributes != nil do delete(attributes);
 	free(c);
 }
 

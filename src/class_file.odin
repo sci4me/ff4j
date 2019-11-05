@@ -1,4 +1,4 @@
-package fjvm
+package ffvm
 
 // TODO: dry out the parsing code
 

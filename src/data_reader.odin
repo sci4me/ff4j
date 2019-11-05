@@ -1,4 +1,4 @@
-package fjvm
+package ffvm
 
 DataReader :: struct {
 	data: []u8,

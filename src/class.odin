@@ -1,4 +1,4 @@
-package fjvm
+package ffvm
 
 Class :: struct {
 	name: string,
@@ -20,6 +20,7 @@ make_class :: proc() -> ^Class {
 }
 
 delete_class :: proc(using c: ^Class) {
+	for _, v in method_by_name_and_descriptor do delete_method(v);
 	delete(method_by_name_and_descriptor);
 	free(c);
 }
