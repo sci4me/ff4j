@@ -10,10 +10,8 @@ main :: proc() {
         unreachable();
     }
 
-    cl := make_class_loader();
-    defer delete_class_loader(cl);
+    vm := make_vm();
+    defer delete_vm(vm);
 
-    c, err := get_class_by_name(cl, os.args[1]);
-    if err == .NO_ERROR do fmt.println(c);
-    else do fmt.println(c);
+    run_main_class(vm, os.args[1]);
 }

@@ -63,10 +63,10 @@ bootstrap_class_loader :: proc(using cl: ^Class_Loader) {
     ocf, ccf: Class_File;
 
     if _ocf, err := load_class_file("java.lang.Object"); err == .NO_ERROR do ocf = _ocf;
-    else do panic("Unable to load java.lang.Object");
+    else do fail("Error: Could not find or load load java.lang.Object");
 
     if _ccf, err := load_class_file("java.lang.Class"); err == .NO_ERROR do ccf = _ccf;
-    else do panic("Unable to load java.lang.Class");
+    else do fail("Error: Could not find or load java.lang.Class");
 
     oc := make_class();
     oc.name = "java.lang.Object";
