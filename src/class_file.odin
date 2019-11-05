@@ -283,6 +283,12 @@ BootstrapMethods_Attribute_Info :: struct {
 }
 
 Unknown_Attribute_Info :: struct {
+	name: string,
+	bytes: []u8
+}
+
+Ignored_Attribute_Info :: struct {
+	name: string,
 	bytes: []u8
 }
 
@@ -307,7 +313,8 @@ Attribute_Info :: union {
 	RuntimeInvisibleParameterAnnotations_Attribute_Info,
 	AnnotationDefault_Attribute_Info,
 	BootstrapMethods_Attribute_Info,
-	Unknown_Attribute_Info
+	Unknown_Attribute_Info,
+	Ignored_Attribute_Info
 }
 
 Class_File :: struct {
@@ -546,7 +553,11 @@ parse_interfaces :: proc(r: ^DataReader) -> ([]u16, Parse_Error) {
 	return result, .NO_ERROR;
 }
 
-// ConstantValue
+@private
+parse_constant_value_attribute_info :: proc(r: ^DataReader) -> (ConstantValue_Attribute_Info, Parse_Error) {
+	if index, ok := read_u16(r); ok do return ConstantValue_Attribute_Info{index}, .NO_ERROR;
+	else do return {}, .EOF;
+} 
 
 @private
 parse_code_attribute_info :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> (Code_Attribute_Info, Parse_Error) {
@@ -599,10 +610,50 @@ parse_code_attribute_info :: proc(r: ^DataReader, constant_pool: []ConstantPool_
 
 // StackMapTable
 // Exceptions
-// InnerClasses
+
+@private
+parse_inner_class :: proc(r: ^DataReader) -> (InnerClass, Parse_Error) {
+	inner_info_index, outer_info_index, inner_name_index, inner_access: u16;
+
+	if _inner_info_index, ok := read_u16(r); ok do inner_info_index = _inner_info_index;
+	else do return {}, .EOF;
+
+	if _outer_info_index, ok := read_u16(r); ok do outer_info_index = _outer_info_index;
+	else do return {}, .EOF;
+
+	if _inner_name_index, ok := read_u16(r); ok do inner_name_index = _inner_name_index;
+	else do return {}, .EOF;
+
+	if _inner_access, ok := read_u16(r); ok do inner_access = _inner_access;
+	else do return {}, .EOF;
+
+	return InnerClass{inner_info_index, outer_info_index, inner_name_index, inner_access}, .NO_ERROR;
+}
+
+@private
+parse_inner_classes_attribute_info :: proc(r: ^DataReader) -> (InnerClasses_Attribute_Info, Parse_Error) {
+	count: u16;
+
+	if _count, ok := read_u16(r); ok do count = _count;
+	else do return {}, .EOF;
+
+	result := make([]InnerClass, count);
+	for i in 0..<count {
+		if entry, err := parse_inner_class(r); err == .NO_ERROR do result[i] = entry;
+		else do return {}, err;
+	}
+
+	return InnerClasses_Attribute_Info{result}, .NO_ERROR;
+}
+
 // EnclosingMethod
 // Synthetic
-// Signature
+
+@private
+parse_signature_attributr_info :: proc(r: ^DataReader) -> (Signature_Attribute_Info, Parse_Error) {
+	if signature_index, ok := read_u16(r); ok do return Signature_Attribute_Info{signature_index}, .NO_ERROR;
+	else do return {}, .EOF;
+}
 
 @private
 parse_source_file_attribute_info :: proc(r: ^DataReader) -> (SourceFile_Attribute_Info, Parse_Error) {
@@ -641,7 +692,44 @@ parse_line_number_table_attribute_info :: proc(r: ^DataReader) -> (LineNumberTab
 	return LineNumberTable_Attribute_Info{entries}, .NO_ERROR;
 }
 
-// LocalVariableTable
+@private
+parse_local_variable_table_entry :: proc(r: ^DataReader) -> (LocalVariableTable_Entry, Parse_Error) {
+	start_pc, length, name_index, descriptor_index, index: u16;
+
+	if _start_pc, ok := read_u16(r); ok do start_pc = _start_pc;
+	else do return {}, .EOF;
+
+	if _length, ok := read_u16(r); ok do length = _length;
+	else do return {}, .EOF;
+
+	if _name_index, ok := read_u16(r); ok do name_index = _name_index;
+	else do return {}, .EOF;
+
+	if _descriptor_index, ok := read_u16(r); ok do descriptor_index = _descriptor_index;
+	else do return {}, .EOF;
+
+	if _index, ok := read_u16(r); ok do index = _index;
+	else do return {}, .EOF;
+
+	return LocalVariableTable_Entry{start_pc, length, name_index, descriptor_index, index}, .NO_ERROR;
+}
+
+@private
+parse_local_variable_table_attribute_info :: proc(r: ^DataReader) -> (LocalVariableTable_Attribute_Info, Parse_Error) {
+	count: u16;
+
+	if _count, ok := read_u16(r); ok do count = _count;
+	else do return {}, .EOF;
+
+	entries := make([]LocalVariableTable_Entry, count);
+	for i in 0..<count {
+		if entry, err := parse_local_variable_table_entry(r); err == .NO_ERROR do entries[i] = entry;
+		else do return {}, err;
+	}
+
+	return LocalVariableTable_Attribute_Info{entries}, .NO_ERROR;
+}
+
 // Deprecated
 // RuntimeVisibleAnnotations
 // RuntimeInvisibleAnnotations
@@ -649,6 +737,12 @@ parse_line_number_table_attribute_info :: proc(r: ^DataReader) -> (LineNumberTab
 // RuntimeInvisibleParameterAnnotations
 // AnnotationDefault
 // BootstrapMethods
+
+@private
+parse_ignored_attribute_info :: proc(r: ^DataReader, name: string, length: u32) -> (Ignored_Attribute_Info, Parse_Error) {
+	if bytes, ok := read_n_dynamic(r, int(length)); ok do return Ignored_Attribute_Info{name, bytes}, .NO_ERROR;
+	else do return {}, .EOF;
+}
 
 @private
 parse_attribute :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> (Attribute_Info, Parse_Error) {
@@ -669,18 +763,18 @@ parse_attribute :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> (
 	else do return {}, .EOF;
 
 	switch attribute_name {
-		case "ConstantValue":							unimplemented();
+		case "ConstantValue":							return parse_constant_value_attribute_info(r);
 		case "Code":									return parse_code_attribute_info(r, constant_pool);
-		case "StackMapTable":							unimplemented();
+		case "StackMapTable":							return parse_ignored_attribute_info(r, attribute_name, attribute_length);
 		case "Exceptions":								unimplemented();
-		case "InnerClasses":							unimplemented();
+		case "InnerClasses":							return parse_inner_classes_attribute_info(r);
 		case "EnclosingMethod":							unimplemented();
 		case "Synthetic":								unimplemented();
-		case "Signature":								unimplemented();
+		case "Signature":								return parse_signature_attributr_info(r);
 		case "SourceFile":								return parse_source_file_attribute_info(r);
 		case "SourceDebugExtension":					unimplemented();
 		case "LineNumberTable":							return parse_line_number_table_attribute_info(r);
-		case "LocalVariableTable":						unimplemented();
+		case "LocalVariableTable":						return parse_local_variable_table_attribute_info(r);
 		case "Deprecated":								unimplemented();
 		case "RuntimeVisibleAnnotations":				unimplemented();
 		case "RuntimeInvisibleAnnotations":				unimplemented();
@@ -690,7 +784,9 @@ parse_attribute :: proc(r: ^DataReader, constant_pool: []ConstantPool_Info) -> (
 		case "BootstrapMethods":						unimplemented();
 	}
 
-	if bytes, ok := read_n_dynamic(r, int(attribute_length)); ok do return Unknown_Attribute_Info{bytes}, .NO_ERROR;
+	// TODO: assert that we read `attribute_length` bytes
+
+	if bytes, ok := read_n_dynamic(r, int(attribute_length)); ok do return Unknown_Attribute_Info{attribute_name, bytes}, .NO_ERROR;
 	else do return nil, .EOF;
 }
 

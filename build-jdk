@@ -1,0 +1,6 @@
+#!/bin/bash
+rm -rf jdk-bin/*
+
+find jdk -name "*.java" > jdk-sources.txt
+javac -Xbootclasspath:jdk -s jdk -d jdk-bin -g @jdk-sources.txt
+rm -f jdk-sources.txt
