@@ -1,11 +1,11 @@
-package ffvm
+package ff4j
 
 import "core:fmt"
 import "core:os"
 
 main :: proc() {
 	if len(os.args) != 2 {
-		fmt.eprintln("Usage: ffvm <file>");
+		fmt.eprintln("Usage: ff4j <file>");
 		os.exit(1);
 		unreachable();
 	}

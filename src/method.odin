@@ -1,4 +1,4 @@
-package ffvm
+package ff4j
 
 Code :: struct {
 	max_stack: u16,

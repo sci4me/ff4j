@@ -1,4 +1,4 @@
-package ffvm
+package ff4j
 
 // TODO: dry out the parsing code
 

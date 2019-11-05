@@ -1,4 +1,4 @@
-package ffvm
+package ff4j
 
 Object :: struct {
 	class: ^Class

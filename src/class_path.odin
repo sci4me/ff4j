@@ -1,4 +1,4 @@
-package ffvm
+package ff4j
 
 import "core:os"
 import "core:strings"

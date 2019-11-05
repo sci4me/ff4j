@@ -1,4 +1,4 @@
-package ffvm
+package ff4j
 
 DataReader :: struct {
 	data: []u8,

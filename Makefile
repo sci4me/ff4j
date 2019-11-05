@@ -1,4 +1,4 @@
-BINARY=ffvm
+BINARY=ff4j
 SRC_DIR=src
 
 all: $(BINARY)
