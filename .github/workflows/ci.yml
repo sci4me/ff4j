@@ -50,6 +50,7 @@ jobs:
           cd Odin/bin
           curl -sL https://github.com/odin-lang/Odin/releases/download/llvm-windows/llvm-binaries.zip --output llvm-binaries.zip
           7z x llvm-binaries.zip > nul
+          cd ../..
       - name: Build JVM
         run: |
           make ODIN_DIR=Odin
