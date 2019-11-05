@@ -1,18 +1,13 @@
 name: CI
-
 on: [push, pull_request]
-
 jobs:
-  build:
-
+  build_unix:
     runs-on: ${{ matrix.os }}
     strategy:
         matrix:
           os: [ubuntu-latest, macOS-latest]
-
     steps:
     - uses: actions/checkout@v1
-
     - name: (macOS) Install LLVM and setup PATH
       if: startsWith(matrix.os, 'macOS')
       run: |
@@ -33,3 +28,28 @@ jobs:
       run: make ODIN_DIR=Odin
     - name: Build JDK
       run: ./build-jdk
+  build_windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install cURL
+        run: choco install curl
+      - name: Install Make
+        run: choco install make
+      - name: Install Odin
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat
+          git clone https://github.com/odin-lang/Odin.git
+          cd Odin
+          ./build.bat
+          cd ..
+      - name: Download and unpack LLVM binaries
+        shell: cmd
+        run: |
+          cd bin
+          curl -sL https://github.com/odin-lang/Odin/releases/download/llvm-windows/llvm-binaries.zip --output llvm-binaries.zip
+          7z x llvm-binaries.zip > nul
+      - name: Build JVM
+        run: |
+          make ODIN_DIR=Odin
