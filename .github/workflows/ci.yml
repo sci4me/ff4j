@@ -1,0 +1,22 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+        matrix:
+          os: [ubuntu-latest, macOS-latest]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Odin
+      run: |
+        git checkout git@github.com:odin-lang/Odin.git
+        pushd Odin
+        make release
+        popd
+    - name: Build
+      run: ./odin build .
