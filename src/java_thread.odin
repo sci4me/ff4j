@@ -37,6 +37,10 @@ delete_thread :: proc(using t: ^Java_Thread) {
 run_thread_for_ms :: proc(using t: ^Java_Thread, ms: int) {
     start := time.now();
     for time.duration_nanoseconds(time.diff(start, time.now())) < i64(ms) * 1e6 {
+        if interp.frame_count == 0 {
+            state = .TERMINATED;
+            return;
+        }
         execute_single_instruction(&interp);
     }
 }

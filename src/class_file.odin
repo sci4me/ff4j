@@ -2,9 +2,6 @@ package ff4j
 
 // TODO: dry out the parsing code
 
-// TODO: remove fmt import
-import "core:fmt"
-
 MAGIC                       :: 0xCAFEBABE;
 
 ACC_PUBLIC                  :: 0x0001;

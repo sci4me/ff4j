@@ -26,6 +26,7 @@ Interpreter :: struct {
     stack: mem.Stack,
     stack_allocator: mem.Allocator,
     current_frame: ^Stack_Frame,
+    frame_count: int,
     pc: int
 }
 
@@ -55,11 +56,14 @@ push_stack_frame :: proc(using i: ^Interpreter, method: ^Method, return_pc: int)
     frame.return_pc = return_pc;
 
     current_frame = frame;
+    frame_count += 1;
+    pc = 0;
 }
 
 pop_stack_frame :: proc(using i: ^Interpreter) {
     frame := current_frame;
     current_frame = frame.prev;
+    frame_count -= 1;
 
     mem.free(frame, stack_allocator);
 }
@@ -276,7 +280,9 @@ execute_single_instruction :: proc(using i: ^Interpreter) -> bool {
         case PUTFIELD:          unimplemented();
         case PUTSTATIC:         unimplemented();
         case RET:               unimplemented();
-        case RETURN:            unimplemented();
+        case RETURN: {
+            pop_stack_frame(i);
+        }
         case SALOAD:            unimplemented();
         case SASTORE:           unimplemented();
         case SIPUSH:            unimplemented();

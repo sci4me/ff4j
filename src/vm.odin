@@ -41,9 +41,16 @@ run :: proc(using vm: ^VM) {
     // TODO: priority scheduling, etc.
 
     for len(threads) > 0 {
+        ran := 0;
+
         for thread in threads {
-            if thread.state == .RUNNABLE do run_thread_for_ms(thread, 10);
+            if thread.state == .RUNNABLE {
+                run_thread_for_ms(thread, 10);
+                ran += 1;
+            }
         }
+
+        if ran == 0 do return; // TODO
 
         // TODO: remove TERMINATED threads
     }
