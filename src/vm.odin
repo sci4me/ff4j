@@ -9,7 +9,7 @@ VM :: struct {
 
 make_vm :: proc() -> ^VM {
     using vm := new(VM);
-    class_loader = make_class_loader();
+    class_loader = make_class_loader(vm);
     return vm;
 }
 

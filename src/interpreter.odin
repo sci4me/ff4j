@@ -2,6 +2,7 @@ package ff4j
 
 import "core:mem"
 import "core:runtime"
+import "core:fmt"
 
 DEFAULT_STACK_SIZE :: 1024 * 8;
 
@@ -73,6 +74,16 @@ execute_single_instruction :: proc(using i: ^Interpreter) -> bool {
         if pc < len(current_frame.method.code.code) {
             v := current_frame.method.code.code[pc];
             pc += 1;
+            return v, true;
+        } else {
+            return 0, false;
+        }
+    }
+
+    read_u16 :: proc(using i: ^Interpreter) -> (u16, bool) {
+        if pc + 1 < len(current_frame.method.code.code) {
+            v := u16(current_frame.method.code.code[pc] << 8) | u16(current_frame.method.code.code[pc + 1]);
+            pc += 2;
             return v, true;
         } else {
             return 0, false;
@@ -167,7 +178,39 @@ execute_single_instruction :: proc(using i: ^Interpreter) -> bool {
         case FSTORE_3:          unimplemented();
         case FSUB:              unimplemented();
         case GETFIELD:          unimplemented();
-        case GETSTATIC:         unimplemented();
+        case GETSTATIC: {
+            field_ref_idx: u16;
+            if _field_ref_idx, ok := read_u16(i); ok do field_ref_idx = _field_ref_idx;
+            else do panic("BAD_CLASS");
+
+            field_ref: Constant_Fieldref_Info;
+            if _field_ref, ok := get_cpe(current_frame.method.class, field_ref_idx, type_of(field_ref)); ok do field_ref = _field_ref;
+            else do panic("BAD_CLASS");
+
+            class: Constant_Class_Info;
+            name_and_type: Constant_NameAndType_Info;
+
+            if _class, ok := get_cpe(current_frame.method.class, field_ref.class_index, type_of(class)); ok do class = _class;
+            else do panic("BAD_CLASS");
+
+            if _name_and_type, ok := get_cpe(current_frame.method.class, field_ref.name_and_type_index, type_of(name_and_type)); ok do name_and_type = _name_and_type;
+            else do panic("BAD_CLASS");
+
+            class_name, field_name, descriptor: string;
+
+            if _class_name, ok := get_utf8_cpe(current_frame.method.class, class.name_index); ok do class_name = _class_name;
+            else do panic("BAD_CLASS");
+
+            if _field_name, ok := get_utf8_cpe(current_frame.method.class, name_and_type.name_index); ok do field_name = _field_name;
+            else do panic("BAD_CLASS");
+
+            if _descriptor, ok := get_utf8_cpe(current_frame.method.class, name_and_type.descriptor_index); ok do descriptor = _descriptor;
+            else do panic("BAD_CLASS");
+
+            fmt.println(class_name, field_name, descriptor);
+
+            unimplemented();
+        }
         case GOTO:              unimplemented();
         case GOTO_W:            unimplemented();
         case I2B:               unimplemented();

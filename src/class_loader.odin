@@ -11,7 +11,9 @@ Load_Error :: enum {
 }
 
 Class_Loader :: struct {
+    vm: ^VM,
     class_by_name: map[string]^Class,
+    class_instance_by_name: map[string]^Object,
 
     object_class: ^Class,
     object_class_instance: ^Object,
@@ -99,16 +101,20 @@ bootstrap_class_loader :: proc(using cl: ^Class_Loader) {
     // TODO
 
     class_by_name["java.lang.Object"] = oc;
+    class_instance_by_name["java.lang.Object"] = oci;
     class_by_name["java.lang.Class"] = cc;
+    class_instance_by_name["java.lang.Class"] = cci;
     object_class = oc;
     object_class_instance = oci;
     class_class = cc;
     class_class_instance = cci;
 }
 
-make_class_loader :: proc() -> ^Class_Loader {
-    cl := new(Class_Loader);
-    cl.class_by_name = make(map[string]^Class);
+make_class_loader :: proc(vm: ^VM) -> ^Class_Loader {
+    using cl := new(Class_Loader);
+    cl.vm = vm;
+    class_by_name = make(map[string]^Class);
+    class_instance_by_name = make(map[string]^Object);
     bootstrap_class_loader(cl);
     return cl;
 }
@@ -116,6 +122,7 @@ make_class_loader :: proc() -> ^Class_Loader {
 delete_class_loader :: proc(using cl: ^Class_Loader) {
     for _, v in class_by_name do free(v);
     delete(class_by_name);
+    delete(class_instance_by_name);
     free(cl);
 }
 
@@ -176,7 +183,9 @@ load_class_from_class_file :: proc(cl: ^Class_Loader, using cf: Class_File) -> (
     c.attributes = attributes;
 
     class_instance := make_object(cl.class_class);
+    cl.class_instance_by_name[name] = class_instance;
 
+    // TODO: load constant fields
     // TODO: call <clinit> if it exists
     // TODO: call <init>
 
